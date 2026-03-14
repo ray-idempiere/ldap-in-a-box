@@ -129,7 +129,88 @@ npm run dev
 
 ---
 
-## 捌・授權
+## 捌・主從複寫（Slave Replication）
+
+> 古人云：「狡兔三窟。」帳號資料亦當有備無患。若企業規模漸長，或有多站點之需，可設 Slave 節點以分擔讀取、增強容災。
+
+### 何時需要？
+
+| 場景 | 理由 |
+|---|---|
+| 多站點 / 跨地區辦公室 | 各站點需本地 LDAP 節點，降低延遲 |
+| 高可用性要求（99.9%+） | Master 故障時 Slave 可繼續提供讀取服務 |
+| 大量認證請求 | 數千台設備同時做 RADIUS / VPN 認證，需做讀取負載分散 |
+
+> 💡 **中小企業提示**：若使用者 < 500 人且僅單一站點，單台 Master + 定期 LDIF 備份已足夠，無需急於設置 Replication。
+
+### 設定方法
+
+在 `docker-compose.yml` 中新增一個 `ldap-slave` service：
+
+```yaml
+  ldap-slave:
+    image: osixia/openldap:1.5.0
+    environment:
+      LDAP_ORGANISATION: "${LDAP_ORGANISATION:-My Company}"
+      LDAP_DOMAIN: "${LDAP_DOMAIN:-example.com}"
+      LDAP_ADMIN_PASSWORD: "${LDAP_ADMIN_PASSWORD:-change_me}"
+      LDAP_TLS: "true"
+      LDAP_TLS_VERIFY_CLIENT: "never"
+      LDAP_REPLICATION: "true"
+      LDAP_REPLICATION_HOSTS: "#DIFFABLE:ldap://ldap-master,ldap://ldap-slave"
+    depends_on:
+      ldap-master:
+        condition: service_healthy
+    ports:
+      - "${LDAP_SLAVE_PORT:-390}:389"
+```
+
+同時，為 `ldap-master` 也加上 Replication 環境變數：
+
+```yaml
+  ldap-master:
+    # ... 原有設定 ...
+    environment:
+      # ... 原有變數 ...
+      LDAP_REPLICATION: "true"
+      LDAP_REPLICATION_HOSTS: "#DIFFABLE:ldap://ldap-master,ldap://ldap-slave"
+```
+
+### 啟動與驗證
+
+```bash
+# 重新啟動所有容器
+docker compose up -d
+
+# 驗證 Replication 狀態
+docker exec ldap-slave ldapsearch -x -H ldap://localhost \
+  -b "dc=example,dc=com" -D "cn=admin,dc=example,dc=com" \
+  -w change_me "(objectClass=*)" dn
+```
+
+若 Slave 能查到與 Master 相同的 Entry，即表示複寫成功。
+
+### 架構圖
+
+```text
+               ┌─────────────────┐
+               │    ldap-web     │
+               │  (FastAPI + Vue)│
+               └────────┬────────┘
+                        │ 寫入 + 讀取
+                        ▼
+               ┌─────────────────┐     Replication     ┌─────────────────┐
+               │  ldap-master    │ ──────────────────► │  ldap-slave     │
+               │  Port: 389      │                      │  Port: 390      │
+               └─────────────────┘                      └─────────────────┘
+                                                         ▲ 讀取（分流用）
+                                                         │
+                                                   Synology / RADIUS
+```
+
+---
+
+## 玖・授權
 
 MIT License。詳見 `LICENSE`。
 
