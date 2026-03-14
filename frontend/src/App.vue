@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen bg-gray-100">
-    <nav v-if="isLoggedIn" class="bg-indigo-600 text-white p-4">
+    <nav v-if="showNav" class="bg-indigo-600 text-white p-4">
       <div class="max-w-7xl mx-auto flex items-center gap-6">
         <span class="font-bold text-lg">LDAP-in-a-Box</span>
         <router-link to="/" class="hover:underline">Dashboard</router-link>
@@ -17,10 +17,11 @@
 
 <script setup>
 import { computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 
 const router = useRouter()
-const isLoggedIn = computed(() => !!localStorage.getItem('token'))
+const route = useRoute()
+const showNav = computed(() => route.path !== '/login')
 
 function logout() {
   localStorage.removeItem('token')
