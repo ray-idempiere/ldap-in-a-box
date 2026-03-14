@@ -38,7 +38,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import api from '../api/client'
+import { apiV2 as api } from '../api/client'
 import TreePanel from '../components/TreePanel.vue'
 import EntryDetail from '../components/EntryDetail.vue'
 import CreateEntry from '../components/CreateEntry.vue'

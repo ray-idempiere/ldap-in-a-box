@@ -41,7 +41,7 @@
 
 <script setup>
 import { ref, watch, computed } from 'vue'
-import api from '../api/client'
+import { apiV2 as api } from '../api/client'
 
 const props = defineProps({
   dn: String

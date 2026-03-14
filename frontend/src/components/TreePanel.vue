@@ -15,7 +15,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import api from '../api/client'
+import { apiV2 as api } from '../api/client'
 import TreeNode from './TreeNode.vue'
 
 const props = defineProps({

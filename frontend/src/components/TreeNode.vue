@@ -47,7 +47,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import api from '../api/client'
+import { apiV2 as api } from '../api/client'
 
 const props = defineProps({
   node: Object,

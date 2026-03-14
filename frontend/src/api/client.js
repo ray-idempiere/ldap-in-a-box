@@ -1,6 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({ baseURL: '/api/v1' })
+export const apiV2 = axios.create({ baseURL: '/api/v2' })
 
 api.interceptors.request.use(config => {
     const token = localStorage.getItem('token')
@@ -8,7 +9,13 @@ api.interceptors.request.use(config => {
     return config
 })
 
-api.interceptors.response.use(
+apiV2.interceptors.request.use(config => {
+    const token = localStorage.getItem('token')
+    if (token) config.headers.Authorization = `Bearer ${token}`
+    return config
+})
+
+const responseInterceptor = [
     res => res,
     err => {
         if (err.response?.status === 401) {
@@ -17,6 +24,9 @@ api.interceptors.response.use(
         }
         return Promise.reject(err)
     }
-)
+]
+
+api.interceptors.response.use(...responseInterceptor)
+apiV2.interceptors.response.use(...responseInterceptor)
 
 export default api
