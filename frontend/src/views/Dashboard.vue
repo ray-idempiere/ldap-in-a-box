@@ -51,6 +51,11 @@
           <button @click="exportBackup" :disabled="exporting" class="w-full text-left bg-gray-800 hover:bg-gray-700 px-4 py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50">
             💾 {{ exporting ? 'Exporting...' : 'Export LDIF Backup' }}
           </button>
+          
+          <input type="file" ref="fileInput" class="hidden" accept=".ldif" @change="handleFileUpload" />
+          <button @click="triggerFileInput" :disabled="importing" class="w-full text-left bg-gray-800 hover:bg-gray-700 px-4 py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50">
+            📥 {{ importing ? 'Importing...' : 'Import LDIF Restore' }}
+          </button>
         </div>
       </div>
     </div>
@@ -91,6 +96,8 @@ const serverOk = ref(false)
 const baseDn = ref('')
 const recentUsers = ref([])
 const exporting = ref(false)
+const importing = ref(false)
+const fileInput = ref(null)
 
 onMounted(async () => {
   try {
@@ -140,6 +147,41 @@ async function exportBackup() {
     alert('Backup failed: ' + (e.response?.data?.detail || e.message))
   } finally {
     exporting.value = false
+  }
+}
+
+function triggerFileInput() {
+  fileInput.value.click()
+}
+
+async function handleFileUpload(event) {
+  const file = event.target.files[0]
+  if (!file) return
+
+  importing.value = true
+  const formData = new FormData()
+  formData.append('file', file)
+
+  try {
+    await api.post('/backup/restore', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+    alert('Restore completed successfully! Some existing entries may have been skipped.')
+    // Refresh stats
+    const [usersRes, groupsRes] = await Promise.all([
+      api.get('/users'),
+      api.get('/groups'),
+    ])
+    stats.value.users = usersRes.data.length
+    stats.value.groups = groupsRes.data.length
+    stats.value.vpnUsers = usersRes.data.filter(u => u.is_vpn === 'Y').length
+  } catch (e) {
+    alert('Restore failed: ' + (e.response?.data?.detail || e.message))
+  } finally {
+    importing.value = false
+    event.target.value = '' // Reset input
   }
 }
 </script>
