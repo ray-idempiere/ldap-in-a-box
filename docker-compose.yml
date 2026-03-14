@@ -24,8 +24,8 @@ services:
   ldap-web:
     build: .
     container_name: ldap-web
-    ports:
-      - "${WEB_PORT:-8443}:8000"
+    expose:
+      - "8000"
     environment:
       LDAP_HOST: ldap-master
       LDAP_PORT: 389
@@ -38,6 +38,22 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  nginx:
+    image: nginx:alpine
+    container_name: ldap-nginx
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/entrypoint.sh:/entrypoint.sh:ro
+      - nginx-ssl:/etc/nginx/ssl
+    entrypoint: /entrypoint.sh
+    depends_on:
+      - ldap-web
+    restart: unless-stopped
+
 volumes:
   ldap-data:
   ldap-config:
+  nginx-ssl:

@@ -35,7 +35,7 @@ cp .env.example .env
 docker compose up -d
 
 # 四、靜候數秒，乃開瀏覽器
-open http://localhost:8443
+open https://localhost
 ```
 
 首次登入，以 `admin` 為帳號，`.env` 中所設之 `LDAP_ADMIN_PASSWORD` 為密碼。
@@ -45,13 +45,19 @@ open http://localhost:8443
 ## 參・架構圖
 
 ```text
+                        ┌──────────────────┐
+  瀏覽器 / HRM ──HTTPS──►│  nginx (TLS)     │
+                        │  Port: 443 / 80  │
+                        └────────┬─────────┘
+                                 │ HTTP
+                                 ▼
 ┌──────────────────────────┐        ┌──────────────────────────┐
 │                          │        │                          │
 │   ldap-web (FastAPI)     │◄──────►│  ldap-master (OpenLDAP)  │
 │   + Vue.js 前端靜態檔案    │  LDAP  │  osixia/openldap:1.5.0   │
 │   + JWT 認證              │  389   │  + 自訂 Schema (isVPN)    │
 │                          │        │  + 初始 LDIF 種子資料      │
-│   Port: 8443             │        │  Port: 389 / 636         │
+│   Port: 8000 (internal)  │        │  Port: 389 / 636         │
 └──────────────────────────┘        └──────────────────────────┘
 ```
 
@@ -65,7 +71,8 @@ open http://localhost:8443
 | `LDAP_ADMIN_PASSWORD` | 管理員密碼（**務必修改**） | `change_me` |
 | `LDAP_ORGANISATION` | 組織名稱 | `My Company` |
 | `JWT_SECRET` | JWT 簽章金鑰（**務必修改**） | `change_me_to_random_string` |
-| `WEB_PORT` | Web UI 對外埠號 | `8443` |
+| `HTTPS_PORT` | HTTPS 對外埠號 | `443` |
+| `HTTP_PORT` | HTTP 對外埠號（自動跳轉 HTTPS） | `80` |
 | `TZ` | 時區 | `Asia/Taipei` |
 
 > ⚠️ **太史公特別提醒**：`LDAP_ADMIN_PASSWORD` 與 `JWT_SECRET` 若不改，猶如城門大開、印璽外露——後果自負。
@@ -112,7 +119,45 @@ open http://localhost:8443
 
 ---
 
-## 柒・API 整合教學（以 HRM 系統為例）
+## 柒・HTTPS 設定
+
+> 古人云：「明槍易躲，暗箭難防。」帳號密碼若以明文傳輸，豈非自曝於天下？故 LDAP-in-a-Box 內建 Nginx HTTPS 反向代理，首次啟動自動產生自簽憑證，開箱即用。
+
+### 預設行為（自簽憑證）
+
+啟動後即自動生成自簽 TLS 憑證，無需額外設定：
+
+- `https://your-server` → 直接存取（瀏覽器會提示不安全，接受即可）
+- `http://your-server` → 自動 301 跳轉至 HTTPS
+
+### 使用自有憑證 / Let's Encrypt
+
+若已有正式憑證，掛載進 nginx 即可：
+
+```yaml
+# docker-compose.override.yml
+services:
+  nginx:
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - /path/to/fullchain.pem:/etc/nginx/ssl/server.crt:ro
+      - /path/to/privkey.pem:/etc/nginx/ssl/server.key:ro
+```
+
+若使用 Let's Encrypt + Certbot：
+
+```bash
+# 在主機上用 certbot 取得憑證
+sudo certbot certonly --standalone -d ldap.yourcompany.com
+
+# 掛載進 docker-compose.override.yml
+# server.crt → /etc/letsencrypt/live/ldap.yourcompany.com/fullchain.pem
+# server.key → /etc/letsencrypt/live/ldap.yourcompany.com/privkey.pem
+```
+
+---
+
+## 捌・API 整合教學（以 HRM 系統為例）
 
 > 古人云：「授人以魚，不如授人以漁。」此章以一人資系統 (HRM) 為例，示範如何透過 LDAP-in-a-Box 的 REST API 實現統一帳號查詢。凡 ERP、CRM、打卡系統，皆可依此法炮製。
 
