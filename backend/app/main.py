@@ -22,3 +22,11 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(groups.router)
 app.include_router(backup.router)
+
+import os
+from fastapi.staticfiles import StaticFiles
+
+# Serve frontend static files in production
+frontend_dir = os.path.join(os.path.dirname(__file__), "..", "static")
+if os.path.isdir(frontend_dir):
+    app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")

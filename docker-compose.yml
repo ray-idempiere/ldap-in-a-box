@@ -18,13 +18,13 @@ services:
       - ldap-config:/etc/ldap/slapd.d
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "ldapsearch", "-x", "-H", "ldap://localhost", "-b", "", "-s", "base"]
+      test: [ "CMD", "ldapsearch", "-x", "-H", "ldap://localhost", "-b", "", "-s", "base" ]
       interval: 30s
       timeout: 5s
       retries: 3
 
   ldap-web:
-    build: ./backend
+    build: .
     container_name: ldap-web
     ports:
       - "${WEB_PORT:-8443}:8000"
