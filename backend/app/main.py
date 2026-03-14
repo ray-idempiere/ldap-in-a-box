@@ -16,12 +16,15 @@ app.add_middleware(
 def health_check():
     return {"status": "ok", "version": "0.1.0"}
 
-from app.routers import auth, users, groups, backup
+from app.routers import auth, users, groups, backup, tree, entry, schema
 
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(groups.router)
 app.include_router(backup.router)
+app.include_router(tree.router)
+app.include_router(entry.router)
+app.include_router(schema.router)
 
 import os
 from fastapi.staticfiles import StaticFiles

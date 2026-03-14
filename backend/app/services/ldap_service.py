@@ -51,5 +51,21 @@ class LDAPService:
         finally:
             conn.unbind_s()
 
+    def delete_tree(self, dn: str) -> None:
+        """Recursively delete a DN and all its children."""
+        conn = self._connect()
+        try:
+            results = conn.search_s(dn, ldap.SCOPE_SUBTREE, "(objectClass=*)", ["1.1"])
+            # Sort by DN length descending to delete leaves first
+            dns = [r[0] for r in results if r[0] is not None]
+            dns.sort(key=len, reverse=True)
+            for d in dns:
+                try:
+                    conn.delete_s(d)
+                except ldap.NO_SUCH_OBJECT:
+                    pass
+        finally:
+            conn.unbind_s()
+
 
 ldap_service = LDAPService()

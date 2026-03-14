@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 const routes = [
     { path: '/login', component: () => import('./views/Login.vue') },
     { path: '/', component: () => import('./views/Dashboard.vue'), meta: { auth: true } },
+    { path: '/tree', component: () => import('./views/TreeBrowser.vue'), meta: { auth: true } },
     { path: '/users', component: () => import('./views/Users.vue'), meta: { auth: true } },
     { path: '/users/:uid', component: () => import('./views/UserDetail.vue'), meta: { auth: true } },
     { path: '/groups', component: () => import('./views/Groups.vue'), meta: { auth: true } },
