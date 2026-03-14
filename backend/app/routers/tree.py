@@ -32,6 +32,22 @@ def get_tree(base_dn: str = Query(..., description="The Base DN to search under"
     except ldap.LDAPError as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/search", response_model=list[dict])
+def search_tree(
+    base_dn: str = Query(..., description="The Base DN to search under"),
+    filter: str = Query(..., description="The LDAP filter string"),
+    _=Depends(require_admin)
+):
+    try:
+        results = ldap_service.search(base_dn, filter, scope=ldap.SCOPE_SUBTREE)
+        return [process_entry(dn, attrs) for dn, attrs in results if dn is not None]
+    except ldap.NO_SUCH_OBJECT:
+        raise HTTPException(status_code=404, detail="Base DN not found")
+    except ldap.FILTER_ERROR:
+        raise HTTPException(status_code=400, detail="Invalid LDAP filter string")
+    except ldap.LDAPError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/root", response_model=dict)
 def get_tree_root(_=Depends(require_admin)):
     base_dn = settings.ldap_base_dn
