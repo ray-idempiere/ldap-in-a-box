@@ -13,14 +13,15 @@
     <div v-if="loadingTemplates" class="text-gray-500">Loading templates...</div>
     <form v-else @submit.prevent="submitForm" class="max-w-2xl space-y-6">
       
-      <!-- Template Selection -->
+      <!-- Template Selection — large clear tabs -->
       <div>
-        <label class="block font-semibold mb-2">Entry Template</label>
-        <div class="grid grid-cols-2 gap-3">
-          <label v-for="t in templates" :key="t.id" class="border rounded px-4 py-3 cursor-pointer hover:bg-gray-50 flex items-center gap-3" :class="{'ring-2 ring-indigo-500 bg-indigo-50': selectedTemplateId === t.id}">
-            <input type="radio" :value="t.id" v-model="selectedTemplateId" class="hidden" />
-            <span class="font-medium">{{ t.name }}</span>
-          </label>
+        <label class="block font-semibold mb-3 text-gray-700">What do you want to create?</label>
+        <div class="flex gap-2 border-b">
+          <button v-for="t in mainTemplates" :key="t.id" type="button" @click="selectedTemplateId = t.id"
+            class="px-5 py-3 font-medium text-sm border-b-2 -mb-px transition-colors"
+            :class="selectedTemplateId === t.id ? 'border-indigo-600 text-indigo-700 bg-indigo-50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'">
+            {{ t.icon }} {{ t.label }}
+          </button>
         </div>
       </div>
 
@@ -29,10 +30,10 @@
         
         <!-- RDN Field -->
         <div v-if="currentTemplate.rdn_attribute">
-          <label class="block font-semibold mb-1">RDN ({{ currentTemplate.rdn_attribute }}) <span class="text-red-500">*</span></label>
+          <label class="block font-semibold mb-1">{{ rdnLabel }} <span class="text-red-500">*</span></label>
           <div class="flex items-center gap-2">
-            <span class="font-mono text-gray-500">{{ currentTemplate.rdn_attribute }}=</span>
-            <input v-model="rdnValue" required class="flex-1 border rounded px-3 py-2 font-mono" placeholder="value" />
+            <span class="font-mono text-gray-500 bg-white border rounded px-2 py-2 text-sm">{{ currentTemplate.rdn_attribute }}=</span>
+            <input v-model="rdnValue" required class="flex-1 border rounded px-3 py-2 font-mono focus:ring-2 focus:ring-indigo-500 outline-none" :placeholder="rdnPlaceholder" />
           </div>
         </div>
 
@@ -51,17 +52,21 @@
         <div class="h-px bg-gray-200 my-4"></div>
 
         <!-- Required Attributes -->
-        <h3 v-if="requiredAttrs.length" class="font-semibold text-gray-700">Required Attributes</h3>
-        <div v-for="attr in requiredAttrs" :key="attr">
-          <label class="block text-sm font-medium mb-1">{{ attr }} <span class="text-red-500">*</span></label>
-          <input v-model="form[attr]" required class="w-full border rounded px-3 py-2 font-mono" />
+        <div v-if="requiredAttrs.length">
+          <h3 class="font-semibold text-gray-700 mb-3">Required Fields</h3>
+          <div v-for="attr in requiredAttrs" :key="attr" class="mb-3">
+            <label class="block text-sm font-medium mb-1">{{ attr }} <span class="text-red-500">*</span></label>
+            <input v-model="form[attr]" required class="w-full border rounded px-3 py-2 font-mono focus:ring-2 focus:ring-indigo-500 outline-none" />
+          </div>
         </div>
 
         <!-- Optional Attributes -->
-        <h3 v-if="optionalAttrs.length" class="font-semibold text-gray-700 mt-4">Optional Attributes</h3>
-        <div v-for="attr in optionalAttrs" :key="attr" class="flex items-center gap-2 mb-2">
-          <label class="w-48 text-sm font-medium">{{ attr }}</label>
-          <input v-model="form[attr]" class="flex-1 border rounded px-3 py-2 font-mono text-sm" />
+        <div v-if="optionalAttrs.length">
+          <h3 class="font-semibold text-gray-700 mb-3 mt-4">Optional Fields</h3>
+          <div v-for="attr in optionalAttrs" :key="attr" class="mb-3">
+            <label class="block text-sm font-medium mb-1">{{ attr }}</label>
+            <input v-model="form[attr]" class="w-full border rounded px-3 py-2 font-mono text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+          </div>
         </div>
         
         <!-- Custom objectClasses for Custom template -->
@@ -72,10 +77,16 @@
 
       </div>
 
-      <div class="flex gap-3 pt-4">
-        <button type="submit" :disabled="submitting" class="bg-indigo-600 text-white px-6 py-2 rounded shadow hover:bg-indigo-700 disabled:opacity-50">
-          {{ submitting ? 'Creating...' : 'Create Entry' }}
+      <!-- Preview DN -->
+      <div v-if="previewDn" class="bg-gray-100 border rounded-lg p-3 font-mono text-sm text-gray-600">
+        <span class="text-gray-400">Will create:</span> {{ previewDn }}
+      </div>
+
+      <div class="flex gap-3 pt-2">
+        <button type="submit" :disabled="submitting" class="bg-indigo-600 text-white px-6 py-2.5 rounded shadow hover:bg-indigo-700 disabled:opacity-50 font-medium">
+          {{ submitting ? 'Creating...' : '✚ Create Entry' }}
         </button>
+        <button type="button" @click="$emit('cancel')" class="border px-6 py-2.5 rounded hover:bg-gray-50 font-medium">Cancel</button>
       </div>
 
     </form>
@@ -97,6 +108,38 @@ const loadingTemplates = ref(true)
 const selectedTemplateId = ref('')
 const currentTemplate = computed(() => templates.value.find(t => t.id === selectedTemplateId.value))
 
+const mainTemplates = computed(() => [
+  { id: 'organizationalUnit', icon: '📁', label: 'OU' },
+  { id: 'inetOrgPerson', icon: '👤', label: 'User' },
+  { id: 'posixGroup', icon: '👥', label: 'Group' },
+  { id: 'custom', icon: '📄', label: 'Custom' }
+])
+
+const rdnLabel = computed(() => {
+  const t = currentTemplate.value
+  if (!t) return 'RDN'
+  if (t.id === 'organizationalUnit') return 'OU Name'
+  if (t.id === 'inetOrgPerson') return 'User ID (uid)'
+  if (t.id === 'posixGroup') return 'Group Name (cn)'
+  return `RDN (${t.rdn_attribute})`
+})
+
+const rdnPlaceholder = computed(() => {
+  const t = currentTemplate.value
+  if (!t) return 'value'
+  if (t.id === 'organizationalUnit') return 'e.g. engineering'
+  if (t.id === 'inetOrgPerson') return 'e.g. john.doe'
+  if (t.id === 'posixGroup') return 'e.g. developers'
+  return 'value'
+})
+
+const previewDn = computed(() => {
+  if (!rdnValue.value || !currentTemplate.value) return ''
+  const rdnAttr = currentTemplate.value.rdn_attribute || customRdnAttr.value
+  if (!rdnAttr) return ''
+  return `${rdnAttr}=${rdnValue.value},${props.parentDn}`
+})
+
 const rdnValue = ref('')
 const customRdnAttr = ref('')
 const customObjectClasses = ref('')
@@ -107,9 +150,7 @@ onMounted(async () => {
   try {
     const { data } = await api.get('/schema/templates')
     templates.value = data
-    if (data.length > 0) {
-      selectedTemplateId.value = data[0].id
-    }
+    selectedTemplateId.value = 'organizationalUnit'
   } catch (e) {
     console.error('Failed to load templates')
   } finally {
@@ -123,7 +164,7 @@ watch(currentTemplate, (tmpl) => {
   rdnValue.value = ''
   if (tmpl) {
     (tmpl.required || []).forEach(a => { if(a !== tmpl.rdn_attribute) form.value[a] = '' })
-    (tmpl.optional || []).forEach(a => form.value[a] = '')
+    ;(tmpl.optional || []).forEach(a => form.value[a] = '')
   }
 }, { immediate: true })
 

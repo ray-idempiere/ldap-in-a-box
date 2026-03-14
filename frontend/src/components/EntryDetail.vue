@@ -4,15 +4,24 @@
     <div class="flex justify-between items-start mb-6 border-b pb-4">
       <div>
         <h2 class="text-2xl font-bold mb-1 break-all">{{ entry.dn }}</h2>
-        <div class="flex gap-2 text-sm text-gray-500">
+        <div class="flex flex-wrap gap-2 text-sm text-gray-500 mt-2">
           <span v-for="oc in entry.attributes.objectClass" :key="oc" class="bg-gray-100 px-2 py-0.5 rounded border">{{ oc }}</span>
         </div>
       </div>
-      <div class="flex gap-3">
-        <button v-if="hasChanges" @click="saveChanges" class="bg-indigo-600 text-white px-4 py-2 rounded shadow hover:bg-indigo-700">Save Changes</button>
-        <button v-if="hasChanges" @click="discardChanges" class="border px-4 py-2 rounded hover:bg-gray-50">Discard</button>
-        <button @click="$emit('delete', entry.dn)" class="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded hover:bg-red-100">Delete Entry</button>
+      <div class="flex gap-3 flex-shrink-0">
+        <button @click="saveChanges" :disabled="!hasChanges || saving"
+          class="px-4 py-2 rounded shadow transition-colors"
+          :class="hasChanges ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'">
+          {{ saving ? 'Saving...' : '💾 Save' }}
+        </button>
+        <button v-if="hasChanges" @click="discardChanges" class="border px-4 py-2 rounded hover:bg-gray-50">↩ Discard</button>
+        <button @click="$emit('delete', entry.dn)" class="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded hover:bg-red-100">🗑 Delete</button>
       </div>
+    </div>
+
+    <!-- Success/Error Toast -->
+    <div v-if="toast" class="mb-4 px-4 py-3 rounded-lg text-sm font-medium" :class="toast.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'">
+      {{ toast.message }}
     </div>
 
     <div class="space-y-4 max-w-4xl">
@@ -23,7 +32,7 @@
         </div>
         <div class="p-4 space-y-2">
           <div v-for="(val, idx) in vlist" :key="idx" class="flex gap-2">
-            <input v-model="editForm[attr][idx]" class="w-full border rounded px-3 py-1 font-mono text-sm focus:ring-1 focus:ring-indigo-500" :disabled="attr === 'objectClass' || isRdnAttribute(attr, val)" />
+            <input v-model="editForm[attr][idx]" class="w-full border rounded px-3 py-1.5 font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow" :disabled="attr === 'objectClass' || isRdnAttribute(attr, val)" :class="{ 'bg-gray-100 text-gray-500': attr === 'objectClass' || isRdnAttribute(attr, val) }" />
             <button v-if="attr !== 'objectClass' && !isRdnAttribute(attr, val)" @click="removeValue(attr, idx)" class="text-red-400 hover:text-red-600 px-2">✕</button>
           </div>
           <div v-if="vlist.length === 0" class="text-gray-400 text-sm italic">No values</div>
@@ -32,7 +41,7 @@
 
       <!-- Add new attribute -->
       <div class="border border-dashed rounded-lg p-4 flex gap-3">
-        <input v-model="newAttr" placeholder="New attribute (e.g. description)" class="border rounded px-3 py-1 text-sm font-mono w-48" />
+        <input v-model="newAttr" placeholder="New attribute (e.g. description)" class="border rounded px-3 py-1 text-sm font-mono w-48" @keydown.enter.prevent="addNewAttr" />
         <button @click="addNewAttr" class="bg-gray-100 border px-4 py-1 rounded text-sm hover:bg-gray-200">Add Attribute</button>
       </div>
     </div>
@@ -47,13 +56,15 @@ const props = defineProps({
   dn: String
 })
 
-const emit = defineEmits(['delete'])
+const emit = defineEmits(['delete', 'updated'])
 
 const loading = ref(false)
+const saving = ref(false)
 const entry = ref(null)
 const editForm = ref({})
 const originalForm = ref({})
 const newAttr = ref('')
+const toast = ref(null)
 
 const hasChanges = computed(() => JSON.stringify(editForm.value) !== JSON.stringify(originalForm.value))
 
@@ -62,10 +73,10 @@ watch(() => props.dn, loadEntry, { immediate: true })
 async function loadEntry() {
   if (!props.dn) return
   loading.value = true
+  toast.value = null
   try {
     const { data } = await api.get('/entry', { params: { dn: props.dn } })
     entry.value = data
-    // deep clone
     editForm.value = JSON.parse(JSON.stringify(data.attributes))
     originalForm.value = JSON.parse(JSON.stringify(data.attributes))
   } catch (e) {
@@ -76,7 +87,6 @@ async function loadEntry() {
 }
 
 function isRdnAttribute(attr, val) {
-  // Simple check: if DN starts with attr=val, it shouldn't be edited easily to prevent rename errors
   const rdnPart = `${attr}=${val}`
   return entry.value.dn.toLowerCase().startsWith(rdnPart.toLowerCase())
 }
@@ -98,30 +108,36 @@ function addNewAttr() {
 
 function discardChanges() {
   editForm.value = JSON.parse(JSON.stringify(originalForm.value))
+  toast.value = null
+}
+
+function showToast(type, message) {
+  toast.value = { type, message }
+  setTimeout(() => { toast.value = null }, 4000)
 }
 
 async function saveChanges() {
+  saving.value = true
   try {
-    // only send mod list if we want, currently API expects full replace list in our simplistic implementation
-    // Clean up empty strings
     const cleanData = {}
     for (const k in editForm.value) {
-      if (k === 'objectClass') continue // we don't modify objectclasses easily via put
+      if (k === 'objectClass') continue
       const vals = editForm.value[k].filter(v => !!v.trim())
-      if (vals.length > 0 || !originalForm.value[k] || originalForm.value[k].length === 0) {
+      if (vals.length > 0) {
         cleanData[k] = vals
-      }
-      if (vals.length === 0 && originalForm.value[k] && originalForm.value[k].length > 0) {
-         // was deleted
-         cleanData[k] = []
+      } else if (originalForm.value[k] && originalForm.value[k].length > 0) {
+        cleanData[k] = []
       }
     }
     
     await api.put('/entry', cleanData, { params: { dn: props.dn } })
-    loadEntry()
-    alert('Saved successfully!')
+    await loadEntry()
+    showToast('success', '✅ Entry saved successfully!')
+    emit('updated')
   } catch (e) {
-    alert('Failed to save: ' + (e.response?.data?.detail || e.message))
+    showToast('error', '❌ Failed to save: ' + (e.response?.data?.detail || e.message))
+  } finally {
+    saving.value = false
   }
 }
-</script
+</script>
