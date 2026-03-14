@@ -1,60 +1,60 @@
 <template>
   <div class="text-gray-200">
-    <h1 class="text-2xl font-bold mb-8 text-gray-100">📊 Dashboard</h1>
+    <h1 class="text-2xl font-bold mb-8 text-gray-100">📊 {{ $t('dashboard.title') }}</h1>
     
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8">
       <div class="bg-gray-900 border border-gray-800 p-5 rounded-xl">
         <div class="text-3xl font-bold text-indigo-400">{{ stats.users }}</div>
-        <div class="text-gray-500 text-sm mt-1">Users</div>
+        <div class="text-gray-500 text-sm mt-1">{{ $t('dashboard.users') }}</div>
       </div>
       <div class="bg-gray-900 border border-gray-800 p-5 rounded-xl">
         <div class="text-3xl font-bold text-green-400">{{ stats.groups }}</div>
-        <div class="text-gray-500 text-sm mt-1">Groups</div>
+        <div class="text-gray-500 text-sm mt-1">{{ $t('dashboard.groups') }}</div>
       </div>
       <div class="bg-gray-900 border border-gray-800 p-5 rounded-xl">
         <div class="text-3xl font-bold text-blue-400">{{ stats.vpnUsers }}</div>
-        <div class="text-gray-500 text-sm mt-1">VPN Users</div>
+        <div class="text-gray-500 text-sm mt-1">{{ $t('dashboard.vpnUsers') }}</div>
       </div>
       <div class="bg-gray-900 border border-gray-800 p-5 rounded-xl">
         <div class="text-3xl font-bold text-emerald-400">{{ stats.ous }}</div>
-        <div class="text-gray-500 text-sm mt-1">Org Units</div>
+        <div class="text-gray-500 text-sm mt-1">{{ $t('dashboard.orgUnits') }}</div>
       </div>
     </div>
 
     <!-- Server Info -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
       <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
-        <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">🖥 Server Status</h2>
+        <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">🖥 {{ $t('dashboard.serverStatus') }}</h2>
         <div class="space-y-3 text-sm">
           <div class="flex justify-between">
-            <span class="text-gray-500">LDAP Connection</span>
+            <span class="text-gray-500">{{ $t('dashboard.ldapConnection') }}</span>
             <span :class="serverOk ? 'text-green-400' : 'text-red-400'">{{ serverOk ? '● Online' : '● Offline' }}</span>
           </div>
           <div class="flex justify-between">
-            <span class="text-gray-500">Base DN</span>
+            <span class="text-gray-500">{{ $t('dashboard.baseDn') }}</span>
             <span class="text-gray-300 font-mono text-xs">{{ baseDn }}</span>
           </div>
           <div class="flex justify-between">
-            <span class="text-gray-500">API Version</span>
+            <span class="text-gray-500">{{ $t('dashboard.apiVersion') }}</span>
             <span class="text-gray-300">v1 + v2</span>
           </div>
         </div>
       </div>
 
       <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
-        <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">📋 Quick Actions</h2>
+        <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">📋 {{ $t('dashboard.quickActions') }}</h2>
         <div class="space-y-2">
           <router-link to="/tree" class="block w-full text-left bg-gray-800 hover:bg-gray-700 px-4 py-2.5 rounded-lg text-sm transition-colors">
-            🌳 Open Tree Browser
+            🌳 {{ $t('dashboard.openTreeBrowser') }}
           </router-link>
           <button @click="exportBackup" :disabled="exporting" class="w-full text-left bg-gray-800 hover:bg-gray-700 px-4 py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50">
-            💾 {{ exporting ? 'Exporting...' : 'Export LDIF Backup' }}
+            💾 <span v-if="exporting">Exporting...</span><span v-else>{{ $t('dashboard.exportLdif') }}</span>
           </button>
           
           <input type="file" ref="fileInput" class="hidden" accept=".ldif" @change="handleFileUpload" />
           <button @click="triggerFileInput" :disabled="importing" class="w-full text-left bg-gray-800 hover:bg-gray-700 px-4 py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50">
-            📥 {{ importing ? 'Importing...' : 'Import LDIF Restore' }}
+            📥 <span v-if="importing">Importing...</span><span v-else>{{ $t('dashboard.importLdif') }}</span>
           </button>
         </div>
       </div>
@@ -62,15 +62,15 @@
 
     <!-- Recent Users Table -->
     <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
-      <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">👤 Users</h2>
-      <div v-if="recentUsers.length === 0" class="text-gray-600 text-sm italic">No users found</div>
+      <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">👤 {{ $t('dashboard.recentUsers') }}</h2>
+      <div v-if="recentUsers.length === 0" class="text-gray-600 text-sm italic">{{ $t('dashboard.noUsersFound') }}</div>
       <table v-else class="w-full text-sm">
         <thead>
           <tr class="text-left text-gray-500 border-b border-gray-800">
-            <th class="pb-2 font-medium">UID</th>
-            <th class="pb-2 font-medium">Name</th>
-            <th class="pb-2 font-medium">Email</th>
-            <th class="pb-2 font-medium">VPN</th>
+            <th class="pb-2 font-medium">{{ $t('users.uid') }}</th>
+            <th class="pb-2 font-medium">{{ $t('users.name') }}</th>
+            <th class="pb-2 font-medium">{{ $t('users.email') }}</th>
+            <th class="pb-2 font-medium">{{ $t('users.vpn') }}</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-800/50">

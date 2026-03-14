@@ -1,18 +1,18 @@
 <template>
   <div class="bg-gray-900 border border-gray-700 rounded-lg p-3 text-sm text-gray-200">
     <div class="flex items-center justify-between mb-3 border-b border-gray-800 pb-2">
-      <h3 class="font-bold text-gray-300">Advanced Search Builder</h3>
+      <h3 class="font-bold text-gray-300">{{ $t('tree.advancedSearch') }}</h3>
       <button @click="$emit('close')" class="text-gray-500 hover:text-gray-300">✕</button>
     </div>
 
     <!-- Match Type -->
     <div class="flex items-center gap-2 mb-4">
-      <span class="text-gray-400">Match</span>
+      <span class="text-gray-400">{{ $t('tree.match') }}</span>
       <select v-model="matchType" class="bg-gray-800 border border-gray-700 rounded px-2 py-1 focus:ring-1 focus:ring-indigo-500 outline-none">
-        <option value="&">All (AND)</option>
-        <option value="|">Any (OR)</option>
+        <option value="&">{{ $t('tree.allAnd') }}</option>
+        <option value="|">{{ $t('tree.anyOr') }}</option>
       </select>
-      <span class="text-gray-400">of the following rules:</span>
+      <span class="text-gray-400">{{ $t('tree.rules') }}</span>
     </div>
 
     <!-- Rules List -->
@@ -47,18 +47,18 @@
     <!-- Controls -->
     <div class="flex items-center justify-between mt-2">
       <button @click="addRule" class="text-indigo-400 hover:text-indigo-300 flex items-center gap-1 text-xs font-semibold">
-        <span>+</span> Add Rule
+        <span>+</span> {{ $t('tree.addRule') }}
       </button>
       
       <div class="flex gap-2">
-        <button @click="$emit('close')" class="px-3 py-1.5 border border-gray-700 text-gray-400 hover:text-gray-200 rounded transition-colors">Cancel</button>
-        <button @click="submitSearch" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded transition-colors shadow-lg shadow-indigo-900/20">Search</button>
+        <button @click="$emit('close')" class="px-3 py-1.5 border border-gray-700 text-gray-400 hover:text-gray-200 rounded transition-colors">{{ $t('groups.cancel') }}</button>
+        <button @click="submitSearch" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded transition-colors shadow-lg shadow-indigo-900/20">{{ $t('tree.search') }}</button>
       </div>
     </div>
 
     <!-- Generated Query Preview -->
     <div class="mt-4 pt-3 border-t border-gray-800">
-      <span class="text-xs text-gray-500 mb-1 block">LDAP Filter preview:</span>
+      <span class="text-xs text-gray-500 mb-1 block">{{ $t('tree.preview') }}</span>
       <div class="bg-gray-950 border border-gray-800 rounded p-2 text-xs font-mono text-indigo-300 break-all">
         {{ generatedFilter }}
       </div>

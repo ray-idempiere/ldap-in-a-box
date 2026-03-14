@@ -1,25 +1,25 @@
 <template>
   <div>
     <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold">Users</h1>
-      <button @click="showCreate = true" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">+ New User</button>
+      <h1 class="text-2xl font-bold">{{ $t('users.title') }}</h1>
+      <button @click="showCreate = true" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">+ {{ $t('users.newUser') }}</button>
     </div>
-      <!-- Search and Bulk Actions -->
-      <div class="flex items-center gap-3 mb-4">
-        <input v-model="search" @input="fetchUsers" placeholder="Search users..." class="flex-1 bg-gray-900 border border-gray-800 text-gray-200 rounded-lg px-4 py-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none" />
-        
-        <transition name="fade">
-          <div v-if="selectedUids.length > 0" class="flex items-center gap-3 bg-indigo-900/30 border border-indigo-800/50 rounded-lg px-4 py-2">
-            <span class="text-indigo-300 text-sm font-medium">{{ selectedUids.length }} selected</span>
-            <div class="h-4 w-px bg-indigo-800 mx-1"></div>
-            <button @click="bulkDelete" :disabled="isBulkActioning" class="text-sm bg-red-900/50 text-red-300 hover:bg-red-800/80 px-3 py-1 rounded transition-colors disabled:opacity-50 flex items-center gap-1">
-              <span v-if="isBulkActioning" class="animate-spin inline-block w-3 h-3 border-2 border-red-300 border-t-transparent rounded-full"></span>
-              🗑 Delete
-            </button>
-            <button @click="selectedUids = []" class="text-sm text-gray-400 hover:text-gray-200 px-2 py-1">Cancel</button>
-          </div>
-        </transition>
-      </div>
+    <!-- Search and Bulk Actions -->
+    <div class="flex items-center gap-3 mb-4">
+      <input v-model="search" @input="fetchUsers" :placeholder="$t('users.search')" class="flex-1 bg-gray-900 border border-gray-800 text-gray-200 rounded-lg px-4 py-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none" />
+      
+      <transition name="fade">
+        <div v-if="selectedUids.length > 0" class="flex items-center gap-3 bg-indigo-900/30 border border-indigo-800/50 rounded-lg px-4 py-2">
+          <span class="text-indigo-300 text-sm font-medium">{{ $t('users.selected', { count: selectedUids.length }) }}</span>
+          <div class="h-4 w-px bg-indigo-800 mx-1"></div>
+          <button @click="bulkDelete" :disabled="isBulkActioning" class="text-sm bg-red-900/50 text-red-300 hover:bg-red-800/80 px-3 py-1 rounded transition-colors disabled:opacity-50 flex items-center gap-1">
+            <span v-if="isBulkActioning" class="animate-spin inline-block w-3 h-3 border-2 border-red-300 border-t-transparent rounded-full"></span>
+            🗑 {{ $t('users.delete') }}
+          </button>
+          <button @click="selectedUids = []" class="text-sm text-gray-400 hover:text-gray-200 px-2 py-1">{{ $t('users.cancel') }}</button>
+        </div>
+      </transition>
+    </div>
 
     <div class="bg-gray-900 rounded-xl shadow border border-gray-800 overflow-hidden">
       <table class="w-full text-sm">
@@ -27,11 +27,11 @@
           <th class="text-left px-4 py-3 w-10">
             <input type="checkbox" :checked="allSelected" @change="toggleAll" class="rounded border-gray-600 bg-gray-700 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-gray-900" />
           </th>
-          <th class="text-left px-4 py-3 font-medium">UID</th>
-          <th class="text-left px-4 py-3 font-medium">Name</th>
-          <th class="text-left px-4 py-3 font-medium">Email</th>
-          <th class="text-left px-4 py-3 font-medium">VPN</th>
-          <th class="text-left px-4 py-3 font-medium">Status</th>
+          <th class="text-left px-4 py-3 font-medium">{{ $t('users.uid') }}</th>
+          <th class="text-left px-4 py-3 font-medium">{{ $t('users.name') }}</th>
+          <th class="text-left px-4 py-3 font-medium">{{ $t('users.email') }}</th>
+          <th class="text-left px-4 py-3 font-medium">{{ $t('users.vpn') }}</th>
+          <th class="text-left px-4 py-3 font-medium">{{ $t('users.status') }}</th>
         </tr></thead>
         <tbody class="divide-y divide-gray-800">
           <tr v-for="u in users" :key="u.uid" class="hover:bg-gray-800/50 transition-colors group cursor-pointer" @click="toggleSelectionOrGo(u.uid, $event)">

@@ -1,0 +1,66 @@
+{
+    "nav": {
+        "treeBrowser": "目錄樹瀏覽",
+        "dashboard": "儀表板",
+        "users": "使用者",
+        "groups": "群組",
+        "logout": "登出",
+        "shortcuts": "捷徑"
+    },
+    "dashboard": {
+        "title": "儀表板",
+        "users": "使用者",
+        "groups": "群組",
+        "vpnUsers": "VPN 使用者",
+        "orgUnits": "組織單位",
+        "serverStatus": "伺服器狀態",
+        "ldapConnection": "LDAP 連線",
+        "baseDn": "基本 DN",
+        "apiVersion": "API 版本",
+        "quickActions": "快速操作",
+        "openTreeBrowser": "開啟目錄樹",
+        "exportLdif": "匯出 LDIF 備份",
+        "importLdif": "匯入 LDIF 還原",
+        "recentUsers": "使用者",
+        "noUsersFound": "找不到使用者"
+    },
+    "users": {
+        "title": "使用者",
+        "newUser": "新增使用者",
+        "search": "搜尋使用者...",
+        "selected": "已選擇 {count} 個",
+        "delete": "刪除",
+        "cancel": "取消",
+        "uid": "帳號 (UID)",
+        "name": "姓名",
+        "email": "電子郵件",
+        "vpn": "VPN",
+        "status": "狀態"
+    },
+    "groups": {
+        "title": "群組",
+        "newGroup": "新增群組",
+        "search": "搜尋群組...",
+        "selected": "已選擇 {count} 個",
+        "delete": "刪除",
+        "cancel": "取消",
+        "name": "名稱",
+        "description": "描述",
+        "members": "成員"
+    },
+    "tree": {
+        "filter": "過濾目錄樹...",
+        "advancedSearch": "進階搜尋產生器",
+        "loading": "載入中...",
+        "searchResults": "搜尋結果 ({count})",
+        "clear": "清除",
+        "noEntries": "找不到符合條件的項目。",
+        "match": "符合",
+        "allAnd": "全部 (AND)",
+        "anyOr": "任一 (OR)",
+        "rules": "下列規則：",
+        "addRule": "新增規則",
+        "search": "搜尋",
+        "preview": "LDAP 過濾器預覽："
+    }
+}

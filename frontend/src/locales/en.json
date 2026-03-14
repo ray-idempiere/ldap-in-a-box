@@ -1,0 +1,66 @@
+{
+    "nav": {
+        "treeBrowser": "Tree Browser",
+        "dashboard": "Dashboard",
+        "users": "Users",
+        "groups": "Groups",
+        "logout": "Logout",
+        "shortcuts": "Shortcuts"
+    },
+    "dashboard": {
+        "title": "Dashboard",
+        "users": "Users",
+        "groups": "Groups",
+        "vpnUsers": "VPN Users",
+        "orgUnits": "Org Units",
+        "serverStatus": "Server Status",
+        "ldapConnection": "LDAP Connection",
+        "baseDn": "Base DN",
+        "apiVersion": "API Version",
+        "quickActions": "Quick Actions",
+        "openTreeBrowser": "Open Tree Browser",
+        "exportLdif": "Export LDIF Backup",
+        "importLdif": "Import LDIF Restore",
+        "recentUsers": "Users",
+        "noUsersFound": "No users found"
+    },
+    "users": {
+        "title": "Users",
+        "newUser": "New User",
+        "search": "Search users...",
+        "selected": "{count} selected",
+        "delete": "Delete",
+        "cancel": "Cancel",
+        "uid": "UID",
+        "name": "Name",
+        "email": "Email",
+        "vpn": "VPN",
+        "status": "Status"
+    },
+    "groups": {
+        "title": "Groups",
+        "newGroup": "New Group",
+        "search": "Search groups...",
+        "selected": "{count} selected",
+        "delete": "Delete",
+        "cancel": "Cancel",
+        "name": "Name",
+        "description": "Description",
+        "members": "Members"
+    },
+    "tree": {
+        "filter": "Filter tree...",
+        "advancedSearch": "Advanced Search Builder",
+        "loading": "Loading tree...",
+        "searchResults": "Search Results ({count})",
+        "clear": "Clear",
+        "noEntries": "No entries found matching filter.",
+        "match": "Match",
+        "allAnd": "All (AND)",
+        "anyOr": "Any (OR)",
+        "rules": "of the following rules:",
+        "addRule": "Add Rule",
+        "search": "Search",
+        "preview": "LDAP Filter preview:"
+    }
+}

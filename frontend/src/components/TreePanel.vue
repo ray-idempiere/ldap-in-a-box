@@ -6,13 +6,13 @@
           <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs">🔍</span>
           <input 
             v-model="searchQuery" 
-            placeholder="Filter tree..." 
+            :placeholder="$t('tree.filter')" 
             class="w-full bg-gray-800 border border-gray-700 rounded pl-8 pr-8 py-1.5 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
             @keydown.escape="clearSearch"
           />
           <button v-if="searchQuery" @click="clearSearch" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 text-xs">✕</button>
         </div>
-        <button @click="showAdvanced = !showAdvanced" class="bg-gray-800 border border-gray-700 hover:bg-gray-700 text-gray-300 p-1.5 rounded transition-colors" title="Advanced Search">
+        <button @click="showAdvanced = !showAdvanced" class="bg-gray-800 border border-gray-700 hover:bg-gray-700 text-gray-300 p-1.5 rounded transition-colors" :title="$t('tree.advancedSearch')">
           ⚙️
         </button>
       </div>
@@ -25,12 +25,12 @@
     <!-- Tree content / Search Results -->
     <div class="flex-1 overflow-y-auto py-2">
       <div v-if="isSearching" class="px-4 text-gray-500 flex items-center gap-2">
-        <span class="animate-spin">⟳</span> Searching...
+        <span class="animate-spin">⟳</span> {{ $t('tree.loading') }}
       </div>
       <div v-else-if="searchResults">
         <div class="px-3 py-2 flex items-center justify-between">
-          <span class="text-xs text-gray-500 font-semibold uppercase tracking-wider">Search Results ({{ searchResults.length }})</span>
-          <button @click="clearSearch" class="text-xs text-indigo-400 hover:text-indigo-300">Clear</button>
+          <span class="text-xs text-gray-500 font-semibold uppercase tracking-wider">{{ $t('tree.searchResults', { count: searchResults.length }) }}</span>
+          <button @click="clearSearch" class="text-xs text-indigo-400 hover:text-indigo-300">{{ $t('tree.clear') }}</button>
         </div>
         <div 
           v-for="res in searchResults" 
@@ -44,11 +44,11 @@
           <div class="text-xs text-gray-500 truncate" :title="res.dn">{{ res.dn }}</div>
         </div>
         <div v-if="searchResults.length === 0" class="px-4 py-4 text-gray-500 italic text-sm">
-          No entries found matching filter.
+          {{ $t('tree.noEntries') }}
         </div>
       </div>
       <div v-else-if="loading" class="px-4 text-gray-500 flex items-center gap-2">
-        <span class="animate-spin">⟳</span> Loading tree...
+        <span class="animate-spin">⟳</span> {{ $t('tree.loading') }}
       </div>
       <div v-else>
         <TreeNode 

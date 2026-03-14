@@ -1,21 +1,21 @@
 <template>
   <div>
     <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold">Groups</h1>
-      <button @click="showCreate = true" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg transition-colors shadow">+ New Group</button>
+      <h1 class="text-2xl font-bold">{{ $t('groups.title') }}</h1>
+      <button @click="showCreate = true" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg transition-colors shadow">+ {{ $t('groups.newGroup') }}</button>
     </div>
 
     <!-- Bulk Actions -->
     <div class="flex items-center gap-3 mb-4">
       <transition name="fade">
         <div v-if="selectedCns.length > 0" class="flex items-center gap-3 bg-indigo-900/30 border border-indigo-800/50 rounded-lg px-4 py-2">
-          <span class="text-indigo-300 text-sm font-medium">{{ selectedCns.length }} selected</span>
+          <span class="text-indigo-300 text-sm font-medium">{{ $t('groups.selected', { count: selectedCns.length }) }}</span>
           <div class="h-4 w-px bg-indigo-800 mx-1"></div>
           <button @click="bulkDelete" :disabled="isBulkActioning" class="text-sm bg-red-900/50 text-red-300 hover:bg-red-800/80 px-3 py-1 rounded transition-colors disabled:opacity-50 flex items-center gap-1">
             <span v-if="isBulkActioning" class="animate-spin inline-block w-3 h-3 border-2 border-red-300 border-t-transparent rounded-full"></span>
-            🗑 Delete
+            🗑 {{ $t('groups.delete') }}
           </button>
-          <button @click="selectedCns = []" class="text-sm text-gray-400 hover:text-gray-200 px-2 py-1">Cancel</button>
+          <button @click="selectedCns = []" class="text-sm text-gray-400 hover:text-gray-200 px-2 py-1">{{ $t('groups.cancel') }}</button>
         </div>
       </transition>
     </div>
@@ -35,7 +35,7 @@
             <span class="font-bold text-lg text-indigo-300 tracking-wide">{{ g.cn }}</span>
             <span class="text-gray-500 ml-3 text-sm">{{ g.description }}</span>
           </div>
-          <span class="text-gray-400">{{ g.members.length }} members</span>
+          <span class="text-gray-400">{{ g.members.length }} {{ $t('groups.members') }}</span>
         </div>
         <div class="mt-3">
           <span v-for="m in g.members" :key="m" class="inline-block bg-indigo-900/40 border border-indigo-800 text-indigo-200 rounded-md px-2 py-0.5 text-xs mr-2 mb-2 tracking-wide font-mono">{{ m }}</span>
