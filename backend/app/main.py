@@ -16,7 +16,8 @@ app.add_middleware(
 def health_check():
     return {"status": "ok", "version": "0.1.0"}
 
-from app.routers import auth, users
+from app.routers import auth, users, groups
 
 app.include_router(auth.router)
 app.include_router(users.router)
+app.include_router(groups.router)
