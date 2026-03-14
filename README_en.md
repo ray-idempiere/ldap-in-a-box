@@ -16,7 +16,11 @@ Grand in ambition, simple in use:
 - 🔐 **JWT Authentication** — LDAP bind for identity verification, JWT tokens for session security
 - 💾 **One-Click Backup** — LDIF export to ensure data is never lost
 
+![LDAP-in-a-Box Dashboard](docs/frontend-dashboard.png)
+
 ![LDAP-in-a-Box Tree Directory Browser](docs/frontend-ui.png)
+
+![LDAP-in-a-Box Add User](docs/frontend-adduser.png)
 
 ---
 
