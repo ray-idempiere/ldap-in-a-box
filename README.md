@@ -208,6 +208,61 @@ docker exec ldap-slave ldapsearch -x -H ldap://localhost \
                                                    Synology / RADIUS
 ```
 
+### 跨機器部署（Slave 在不同主機）
+
+> 若 Slave 部署於異地機房或分公司，只需將 `LDAP_REPLICATION_HOSTS` 改為實際 IP 或域名。
+
+**機器 A（Master）** — `192.168.1.10`
+
+```yaml
+# docker-compose.yml on Machine A
+ldap-master:
+  image: osixia/openldap:1.5.0
+  environment:
+    LDAP_DOMAIN: "example.com"
+    LDAP_ADMIN_PASSWORD: "change_me"
+    LDAP_REPLICATION: "true"
+    LDAP_REPLICATION_HOSTS: "#DIFFABLE:ldap://192.168.1.10,ldap://192.168.1.20"
+  ports:
+    - "389:389"
+```
+
+**機器 B（Slave）** — `192.168.1.20`
+
+```yaml
+# docker-compose.yml on Machine B
+ldap-slave:
+  image: osixia/openldap:1.5.0
+  environment:
+    LDAP_DOMAIN: "example.com"
+    LDAP_ADMIN_PASSWORD: "change_me"
+    LDAP_REPLICATION: "true"
+    LDAP_REPLICATION_HOSTS: "#DIFFABLE:ldap://192.168.1.10,ldap://192.168.1.20"
+  ports:
+    - "389:389"
+```
+
+**⚠️ 跨機器注意事項：**
+
+| 項目 | 說明 |
+|---|---|
+| 防火牆 | 兩台機器的 port `389` 必須互通 |
+| 域名 / 密碼 | `LDAP_DOMAIN` 和 `LDAP_ADMIN_PASSWORD` 兩邊必須完全一致 |
+| TLS | 跨公網務必開啟 `LDAP_TLS=true` 並使用 port `636`，避免明文傳輸 |
+| 寫入方向 | 所有寫入操作仍應指向 Master，Slave 僅供讀取分流 |
+
+```text
+  ┌─ 台北辦公室 ──────────────┐        ┌─ 高雄辦公室 ──────────────┐
+  │                           │        │                           │
+  │  ldap-web    ldap-master  │ ─────► │  ldap-slave               │
+  │  (管理 UI)   192.168.1.10 │  WAN   │  192.168.1.20             │
+  │              Port 389     │        │  Port 389                 │
+  └───────────────────────────┘        └───────────────────────────┘
+                                          ▲
+                                          │ 本地讀取
+                                     Synology / RADIUS
+```
+
 ---
 
 ## 玖・授權
