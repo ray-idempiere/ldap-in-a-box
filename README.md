@@ -112,7 +112,155 @@ open http://localhost:8443
 
 ---
 
-## 柒・本機開發
+## 柒・API 整合教學（以 HRM 系統為例）
+
+> 古人云：「授人以魚，不如授人以漁。」此章以一人資系統 (HRM) 為例，示範如何透過 LDAP-in-a-Box 的 REST API 實現統一帳號查詢。凡 ERP、CRM、打卡系統，皆可依此法炮製。
+
+### 情境說明
+
+```text
+┌──────────────┐    ① POST /auth/login     ┌──────────────────┐
+│              │ ─────────────────────────► │                  │
+│   HRM 系統   │    ② 回傳 JWT token        │  LDAP-in-a-Box   │
+│              │ ◄───────────────────────── │  (API Server)    │
+│              │    ③ GET /users/{uid}      │                  │
+│              │ ─────────────────────────► │                  │
+│              │    ④ 回傳使用者資訊         │                  │
+│              │ ◄───────────────────────── │                  │
+└──────────────┘                            └──────────────────┘
+```
+
+### Step 1：登入取得 JWT Token
+
+```bash
+curl -s -X POST http://ldap-server:8443/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "change_me"}'
+```
+
+回應：
+
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIs...",
+  "token_type": "bearer"
+}
+```
+
+### Step 2：用 Token 查詢使用者資訊
+
+```bash
+# 取得特定使用者
+curl -s http://ldap-server:8443/api/v1/users/ray \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIs..."
+```
+
+回應：
+
+```json
+{
+  "uid": "ray",
+  "cn": "Ray Lee",
+  "mail": "ray@idempiere.dev",
+  "description": "iDempiere Developer",
+  "is_vpn": true,
+  "groups": ["developers", "vpn-users"]
+}
+```
+
+### Step 3：搜尋全部使用者（支援關鍵字）
+
+```bash
+# 列出全部
+curl -s http://ldap-server:8443/api/v1/users \
+  -H "Authorization: Bearer $TOKEN"
+
+# 關鍵字搜尋
+curl -s "http://ldap-server:8443/api/v1/users?search=ray" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Step 4：列出群組及其成員
+
+```bash
+curl -s http://ldap-server:8443/api/v1/groups \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+---
+
+### 🐍 Python 範例（適用 HRM / ERP 後端整合）
+
+```python
+import requests
+
+LDAP_API = "http://ldap-server:8443/api/v1"
+
+# 1. 登入
+resp = requests.post(f"{LDAP_API}/auth/login", json={
+    "username": "admin",
+    "password": "change_me"
+})
+token = resp.json()["access_token"]
+headers = {"Authorization": f"Bearer {token}"}
+
+# 2. 取得使用者資訊
+user = requests.get(f"{LDAP_API}/users/ray", headers=headers).json()
+print(f"員工：{user['cn']}，信箱：{user['mail']}")
+
+# 3. 取得全部使用者（同步至 HRM）
+all_users = requests.get(f"{LDAP_API}/users", headers=headers).json()
+for u in all_users:
+    print(f"  - {u['uid']}: {u['cn']}")
+
+# 4. 檢查是否有 VPN 權限
+if user.get("is_vpn"):
+    print("✅ 此使用者已開通 VPN")
+```
+
+### 📦 Node.js 範例（適用前端 / 微服務）
+
+```javascript
+const axios = require('axios');
+
+const LDAP_API = 'http://ldap-server:8443/api/v1';
+
+async function syncUsersToHRM() {
+  // 1. 登入
+  const { data: auth } = await axios.post(`${LDAP_API}/auth/login`, {
+    username: 'admin',
+    password: 'change_me'
+  });
+
+  const headers = { Authorization: `Bearer ${auth.access_token}` };
+
+  // 2. 取得全部使用者
+  const { data: users } = await axios.get(`${LDAP_API}/users`, { headers });
+
+  // 3. 同步到 HRM 資料庫
+  for (const user of users) {
+    console.log(`同步員工：${user.uid} - ${user.cn} (${user.mail})`);
+    // await hrmDB.upsert({ employee_id: user.uid, name: user.cn, email: user.mail });
+  }
+}
+
+syncUsersToHRM();
+```
+
+### 🔄 常見整合情境
+
+| 情境 | API 呼叫 | 說明 |
+|---|---|---|
+| HRM 新進員工 | `POST /users` | HR 建帳號後，所有系統自動同步 |
+| HRM 離職員工 | `DELETE /users/{uid}` | 一鍵刪除，全系統同時失去存取權 |
+| 打卡系統驗證身份 | `POST /auth/login` | 用 LDAP 帳密驗證，不用另建帳號 |
+| ERP 同步員工清單 | `GET /users` | 定期拉取最新員工清單 |
+| VPN 權限檢查 | `GET /users/{uid}` → `is_vpn` | 檢查 `isVPN` 屬性決定是否放行 |
+| 群組權限控管 | `GET /groups` | 依群組決定系統存取權限 |
+
+---
+
+## 玖・本機開發
 
 ```bash
 # 後端
@@ -129,7 +277,7 @@ npm run dev
 
 ---
 
-## 捌・主從複寫（Slave Replication）
+## 拾・主從複寫（Slave Replication）
 
 > 古人云：「狡兔三窟。」帳號資料亦當有備無患。若企業規模漸長，或有多站點之需，可設 Slave 節點以分擔讀取、增強容災。
 
@@ -265,7 +413,7 @@ ldap-slave:
 
 ---
 
-## 玖・授權
+## 拾壹・授權
 
 MIT License。詳見 `LICENSE`。
 
