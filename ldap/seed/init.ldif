@@ -1,0 +1,15 @@
+dn: ou=users,dc=example,dc=com
+objectClass: organizationalUnit
+ou: users
+
+dn: ou=groups,dc=example,dc=com
+objectClass: organizationalUnit
+ou: groups
+
+dn: ou=alias,dc=example,dc=com
+objectClass: organizationalUnit
+ou: alias
+
+dn: ou=system,dc=example,dc=com
+objectClass: organizationalUnit
+ou: system
