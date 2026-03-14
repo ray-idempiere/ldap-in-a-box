@@ -20,6 +20,7 @@ def trigger_backup(_=Depends(require_admin)):
             "-w", settings.ldap_admin_password,
             "-b", settings.ldap_base_dn,
             "-LLL",
+            "-o", "ldif-wrap=no",
         ],
         capture_output=True,
         text=True,
