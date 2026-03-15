@@ -44,6 +44,12 @@
         </div>
       </div>
     </div>
+
+    <!-- Toast container -->
+    <div v-if="toast" class="fixed bottom-6 right-6 z-50 px-5 py-3 rounded-lg shadow-lg text-sm font-medium transition-all"
+      :class="toast.type === 'success' ? 'bg-green-900 text-green-200 border border-green-700' : 'bg-red-900 text-red-200 border border-red-700'">
+      {{ toast.message }}
+    </div>
   </div>
 </template>
 
@@ -57,6 +63,12 @@ const router = useRouter()
 const user = ref(null)
 const form = ref({})
 const newPassword = ref('')
+const toast = ref(null)
+
+function showToast(type, message) {
+  toast.value = { type, message }
+  setTimeout(() => { toast.value = null }, 3000)
+}
 
 async function fetchUser() {
   const { data } = await api.get(`/users/${route.params.uid}`)
@@ -68,16 +80,16 @@ async function saveUser() {
   try {
     await api.put(`/users/${route.params.uid}`, form.value)
     fetchUser()
-    alert('User updated successfully')
+    showToast('success', '✅ User updated successfully')
   } catch (e) {
-    alert('Failed to update user: ' + (e.response?.data?.detail || e.message))
+    showToast('error', '❌ Failed to update user: ' + (e.response?.data?.detail || e.message))
   }
 }
 
 async function resetPassword() {
   await api.put(`/users/${route.params.uid}/password`, { new_password: newPassword.value })
   newPassword.value = ''
-  alert('Password reset successfully')
+  showToast('success', '✅ Password reset successfully')
 }
 
 async function disableUser() {
