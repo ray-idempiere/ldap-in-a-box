@@ -43,6 +43,12 @@ async def serve_spa_fallback(full_path: str = ""):
     if full_path.startswith("api/"):
         return JSONResponse(status_code=404, content={"detail": "Not Found"})
     
+    # If the user requested a specific file like favicon.svg that exists in static
+    requested_file = os.path.join(frontend_dir, full_path)
+    if os.path.isfile(requested_file) and not full_path == "":
+        return FileResponse(requested_file)
+        
+    # Otherwise fallback to index.html for Vue Router SPA
     frontend_index = os.path.join(frontend_dir, "index.html")
     if os.path.isdir(frontend_dir) and os.path.isfile(frontend_index):
         return FileResponse(frontend_index)
