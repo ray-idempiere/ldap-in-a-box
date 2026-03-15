@@ -22,6 +22,11 @@
           <option value="Y">Yes</option>
           <option value="N">No</option>
         </select>
+        <label class="block text-sm font-medium mb-1">Mail Monitor</label>
+        <select v-model="form.is_mail_monitor" class="w-full border rounded px-3 py-2 mb-4">
+          <option value="Y">Yes</option>
+          <option value="N">No</option>
+        </select>
         <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded">Save</button>
       </form>
 
@@ -56,7 +61,7 @@ const newPassword = ref('')
 async function fetchUser() {
   const { data } = await api.get(`/users/${route.params.uid}`)
   user.value = data
-  form.value = { cn: data.cn, sn: data.sn, mail: data.mail, is_vpn: data.is_vpn }
+  form.value = { cn: data.cn, sn: data.sn, mail: data.mail, is_vpn: data.is_vpn, is_mail_monitor: data.is_mail_monitor }
 }
 
 async function saveUser() {

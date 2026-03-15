@@ -35,6 +35,7 @@
         "name": "姓名",
         "email": "電子郵件",
         "vpn": "VPN",
+        "mailMonitor": "信件監控",
         "status": "狀態"
     },
     "groups": {

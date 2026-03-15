@@ -35,6 +35,7 @@
         "name": "Name",
         "email": "Email",
         "vpn": "VPN",
+        "mailMonitor": "Mail Monitor",
         "status": "Status"
     },
     "groups": {

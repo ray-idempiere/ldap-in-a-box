@@ -31,6 +31,7 @@
           <th class="text-left px-4 py-3 font-medium">{{ $t('users.name') }}</th>
           <th class="text-left px-4 py-3 font-medium">{{ $t('users.email') }}</th>
           <th class="text-left px-4 py-3 font-medium">{{ $t('users.vpn') }}</th>
+          <th class="text-left px-4 py-3 font-medium">{{ $t('users.mailMonitor') }}</th>
           <th class="text-left px-4 py-3 font-medium">{{ $t('users.status') }}</th>
         </tr></thead>
         <tbody class="divide-y divide-gray-800">
@@ -45,6 +46,9 @@
             <td class="px-4 py-3 text-gray-500">{{ u.mail }}</td>
             <td class="px-4 py-3">
               <span :class="u.is_vpn === 'Y' ? 'text-green-400' : 'text-gray-600'">{{ u.is_vpn === 'Y' ? '✓' : '—' }}</span>
+            </td>
+            <td class="px-4 py-3">
+              <span :class="u.is_mail_monitor === 'Y' ? 'text-yellow-400' : 'text-gray-600'">{{ u.is_mail_monitor === 'Y' ? '✓' : '—' }}</span>
             </td>
             <td class="px-4 py-3">
               <span :class="u.enabled ? 'text-green-400' : 'text-red-400'">{{ u.enabled ? 'Active' : 'Disabled' }}</span>

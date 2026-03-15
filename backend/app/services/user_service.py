@@ -19,6 +19,7 @@ def _user_from_entry(dn: str, entry: dict) -> UserResponse:
         given_name=_decode(entry.get("givenName", [b""])),
         mail=_decode(entry.get("mail", [b""])),
         is_vpn=_decode(entry.get("isVPN", [b"N"])),
+        is_mail_monitor=_decode(entry.get("IsMailMonitor", [b"N"])),
         enabled="nologin" not in _decode(entry.get("loginShell", [b""])),
     )
 
@@ -61,6 +62,7 @@ def create_user(data: UserCreate) -> UserResponse:
         ("loginShell", [b"/bin/bash"]),
         ("userPassword", [data.password.encode()]),
         ("isVPN", [data.is_vpn.encode()]),
+        ("IsMailMonitor", [data.is_mail_monitor.encode()]),
     ]
     if data.given_name:
         attrs.append(("givenName", [data.given_name.encode()]))
@@ -84,6 +86,8 @@ def update_user(uid: str, data: UserUpdate) -> UserResponse | None:
         mod_list.append((ldap.MOD_REPLACE, "mail", [data.mail.encode()]))
     if data.is_vpn is not None:
         mod_list.append((ldap.MOD_REPLACE, "isVPN", [data.is_vpn.encode()]))
+    if data.is_mail_monitor is not None:
+        mod_list.append((ldap.MOD_REPLACE, "IsMailMonitor", [data.is_mail_monitor.encode()]))
     if mod_list:
         ldap_service.modify(dn, mod_list)
     return get_user(uid)

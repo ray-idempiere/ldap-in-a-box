@@ -9,6 +9,7 @@ class UserCreate(BaseModel):
     mail: str = ""
     password: str
     is_vpn: str = "N"  # Y/N
+    is_mail_monitor: str = "N"  # Y/N
 
 
 class UserUpdate(BaseModel):
@@ -17,6 +18,7 @@ class UserUpdate(BaseModel):
     given_name: str | None = None
     mail: str | None = None
     is_vpn: str | None = None
+    is_mail_monitor: str | None = None
 
 
 class UserResponse(BaseModel):
@@ -27,6 +29,7 @@ class UserResponse(BaseModel):
     given_name: str = ""
     mail: str = ""
     is_vpn: str = "N"
+    is_mail_monitor: str = "N"
     enabled: bool = True
     groups: list[str] = []
 
