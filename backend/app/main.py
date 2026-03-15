@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="LDAP-in-a-Box", version="0.2.0")
@@ -33,3 +34,14 @@ from fastapi.staticfiles import StaticFiles
 frontend_dir = os.path.join(os.path.dirname(__file__), "..", "static")
 if os.path.isdir(frontend_dir):
     app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
+
+@app.exception_handler(404)
+async def custom_404_handler(request: Request, exc):
+    if request.url.path.startswith("/api/"):
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+    
+    frontend_index = os.path.join(frontend_dir, "index.html")
+    if os.path.isdir(frontend_dir) and os.path.isfile(frontend_index):
+        return FileResponse(frontend_index)
+        
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
