@@ -12,6 +12,7 @@
         "users": "使用者",
         "groups": "群組",
         "vpnUsers": "VPN 使用者",
+        "mailMonitors": "郵件監控",
         "orgUnits": "組織單位",
         "serverStatus": "伺服器狀態",
         "ldapConnection": "LDAP 連線",

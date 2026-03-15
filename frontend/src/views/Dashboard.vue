@@ -3,7 +3,7 @@
     <h1 class="text-2xl font-bold mb-8 text-gray-100">📊 {{ $t('dashboard.title') }}</h1>
     
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8">
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-5 mb-8">
       <div class="bg-gray-900 border border-gray-800 p-5 rounded-xl">
         <div class="text-3xl font-bold text-indigo-400">{{ stats.users }}</div>
         <div class="text-gray-500 text-sm mt-1">{{ $t('dashboard.users') }}</div>
@@ -15,6 +15,10 @@
       <div class="bg-gray-900 border border-gray-800 p-5 rounded-xl">
         <div class="text-3xl font-bold text-blue-400">{{ stats.vpnUsers }}</div>
         <div class="text-gray-500 text-sm mt-1">{{ $t('dashboard.vpnUsers') }}</div>
+      </div>
+      <div class="bg-gray-900 border border-gray-800 p-5 rounded-xl">
+        <div class="text-3xl font-bold text-yellow-400">{{ stats.mailMonitors }}</div>
+        <div class="text-gray-500 text-sm mt-1">{{ $t('dashboard.mailMonitors') }}</div>
       </div>
       <div class="bg-gray-900 border border-gray-800 p-5 rounded-xl">
         <div class="text-3xl font-bold text-emerald-400">{{ stats.ous }}</div>
@@ -93,7 +97,7 @@ import { ref, onMounted } from 'vue'
 import api from '../api/client'
 import { apiV2 } from '../api/client'
 
-const stats = ref({ users: 0, groups: 0, vpnUsers: 0, ous: 0 })
+const stats = ref({ users: 0, groups: 0, vpnUsers: 0, mailMonitors: 0, ous: 0 })
 const serverOk = ref(false)
 const baseDn = ref('')
 const recentUsers = ref([])
@@ -127,6 +131,7 @@ onMounted(async () => {
       users: users.length,
       groups: groupsRes.data.length,
       vpnUsers: users.filter(u => u.is_vpn === 'Y').length,
+      mailMonitors: users.filter(u => u.is_mail_monitor === 'Y').length,
       ous
     }
   } catch (e) {
@@ -179,6 +184,7 @@ async function handleFileUpload(event) {
     stats.value.users = usersRes.data.length
     stats.value.groups = groupsRes.data.length
     stats.value.vpnUsers = usersRes.data.filter(u => u.is_vpn === 'Y').length
+    stats.value.mailMonitors = usersRes.data.filter(u => u.is_mail_monitor === 'Y').length
   } catch (e) {
     alert('Restore failed: ' + (e.response?.data?.detail || e.message))
   } finally {

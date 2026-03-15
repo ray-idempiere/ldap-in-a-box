@@ -12,6 +12,7 @@
         "users": "Users",
         "groups": "Groups",
         "vpnUsers": "VPN Users",
+        "mailMonitors": "Mail Monitors",
         "orgUnits": "Org Units",
         "serverStatus": "Server Status",
         "ldapConnection": "LDAP Connection",
