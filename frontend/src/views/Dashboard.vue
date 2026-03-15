@@ -71,6 +71,7 @@
             <th class="pb-2 font-medium">{{ $t('users.name') }}</th>
             <th class="pb-2 font-medium">{{ $t('users.email') }}</th>
             <th class="pb-2 font-medium">{{ $t('users.vpn') }}</th>
+            <th class="pb-2 font-medium">{{ $t('users.mailMonitor') }}</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-800/50">
@@ -79,6 +80,7 @@
             <td class="py-2 text-gray-300">{{ u.cn }}</td>
             <td class="py-2 text-gray-500">{{ u.mail || '—' }}</td>
             <td class="py-2"><span :class="u.is_vpn === 'Y' ? 'text-green-400' : 'text-gray-600'">{{ u.is_vpn === 'Y' ? '✓' : '—' }}</span></td>
+            <td class="py-2"><span :class="u.is_mail_monitor === 'Y' ? 'text-yellow-400' : 'text-gray-600'">{{ u.is_mail_monitor === 'Y' ? '✓' : '—' }}</span></td>
           </tr>
         </tbody>
       </table>
