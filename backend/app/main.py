@@ -32,11 +32,14 @@ from fastapi.staticfiles import StaticFiles
 
 # Serve frontend static files in production
 frontend_dir = os.path.join(os.path.dirname(__file__), "..", "static")
-if os.path.isdir(frontend_dir):
-    app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
+frontend_assets = os.path.join(frontend_dir, "assets")
 
+if os.path.isdir(frontend_assets):
+    app.mount("/assets", StaticFiles(directory=frontend_assets, html=False), name="frontend-assets")
+
+@app.get("/")
 @app.get("/{full_path:path}")
-async def serve_spa_fallback(full_path: str):
+async def serve_spa_fallback(full_path: str = ""):
     if full_path.startswith("api/"):
         return JSONResponse(status_code=404, content={"detail": "Not Found"})
     
