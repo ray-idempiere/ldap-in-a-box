@@ -65,8 +65,13 @@ async function fetchUser() {
 }
 
 async function saveUser() {
-  await api.put(`/users/${route.params.uid}`, form.value)
-  fetchUser()
+  try {
+    await api.put(`/users/${route.params.uid}`, form.value)
+    fetchUser()
+    alert('User updated successfully')
+  } catch (e) {
+    alert('Failed to update user: ' + (e.response?.data?.detail || e.message))
+  }
 }
 
 async function resetPassword() {
