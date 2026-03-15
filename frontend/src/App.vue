@@ -3,8 +3,11 @@
     
     <!-- Sidebar Navigation -->
     <nav v-if="showNav" class="w-56 bg-gray-900 text-gray-300 flex flex-col border-r border-gray-800 flex-shrink-0">
-      <div class="p-5 font-bold text-lg text-white tracking-widest uppercase border-b border-gray-800">
-        LDAP<span class="text-indigo-400">-in-a-Box</span>
+      <div class="p-4 border-b border-gray-800 flex items-center justify-between">
+        <div class="font-bold text-lg text-white tracking-widest uppercase">
+          LDAP<span class="text-indigo-400">-in-a-Box</span>
+        </div>
+        <span class="text-[10px] text-gray-500 font-mono bg-gray-800/50 px-2 py-0.5 rounded">v0.2.0</span>
       </div>
       
       <div class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
