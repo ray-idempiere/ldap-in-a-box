@@ -75,6 +75,15 @@ def create_user(data: UserCreate) -> UserResponse:
 
 def update_user(uid: str, data: UserUpdate) -> UserResponse | None:
     dn = f"uid={uid},ou=users,{settings.ldap_base_dn}"
+    
+    try:
+        results = ldap_service.search(dn, "(objectClass=*)", ["objectClass"])
+        if not results:
+            return None
+        current_classes = [c.decode() for c in results[0][1].get("objectClass", [])]
+    except Exception:
+        return None
+
     mod_list = []
     if data.cn is not None:
         mod_list.append((ldap.MOD_REPLACE, "cn", [data.cn.encode()]))
@@ -84,10 +93,16 @@ def update_user(uid: str, data: UserUpdate) -> UserResponse | None:
         mod_list.append((ldap.MOD_REPLACE, "givenName", [data.given_name.encode()]))
     if data.mail is not None:
         mod_list.append((ldap.MOD_REPLACE, "mail", [data.mail.encode()]))
+        
+    needs_myorg_user = (data.is_vpn is not None) or (data.is_mail_monitor is not None)
+    if needs_myorg_user and "myorgUser" not in current_classes:
+        mod_list.append((ldap.MOD_ADD, "objectClass", [b"myorgUser"]))
+        
     if data.is_vpn is not None:
         mod_list.append((ldap.MOD_REPLACE, "isVPN", [data.is_vpn.encode()]))
     if data.is_mail_monitor is not None:
         mod_list.append((ldap.MOD_REPLACE, "IsMailMonitor", [data.is_mail_monitor.encode()]))
+        
     if mod_list:
         ldap_service.modify(dn, mod_list)
     return get_user(uid)
