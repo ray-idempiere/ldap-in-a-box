@@ -32,23 +32,14 @@ from fastapi.staticfiles import StaticFiles
 
 # Serve frontend static files in production
 frontend_dir = os.path.join(os.path.dirname(__file__), "..", "static")
-frontend_assets = os.path.join(frontend_dir, "assets")
+if os.path.isdir(frontend_dir):
+    app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
 
-if os.path.isdir(frontend_assets):
-    app.mount("/assets", StaticFiles(directory=frontend_assets, html=False), name="frontend-assets")
-
-@app.get("/")
 @app.get("/{full_path:path}")
-async def serve_spa_fallback(full_path: str = ""):
+async def serve_spa_fallback(full_path: str):
     if full_path.startswith("api/"):
         return JSONResponse(status_code=404, content={"detail": "Not Found"})
     
-    # If the user requested a specific file like favicon.svg that exists in static
-    requested_file = os.path.join(frontend_dir, full_path)
-    if os.path.isfile(requested_file) and not full_path == "":
-        return FileResponse(requested_file)
-        
-    # Otherwise fallback to index.html for Vue Router SPA
     frontend_index = os.path.join(frontend_dir, "index.html")
     if os.path.isdir(frontend_dir) and os.path.isfile(frontend_index):
         return FileResponse(frontend_index)
