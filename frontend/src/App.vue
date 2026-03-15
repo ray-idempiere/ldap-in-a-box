@@ -3,7 +3,7 @@
     
     <!-- Sidebar Navigation -->
     <nav v-if="showNav" class="w-56 bg-gray-900 text-gray-300 flex flex-col border-r border-gray-800 flex-shrink-0">
-      <div class="p-4 border-b border-gray-800 flex items-center justify-between">
+      <div class="p-4 border-b border-gray-800 flex flex-col items-start justify-center gap-1">
         <div class="font-bold text-lg text-white tracking-widest uppercase">
           LDAP<span class="text-indigo-400">-in-a-Box</span>
         </div>
