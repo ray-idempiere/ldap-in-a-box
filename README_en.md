@@ -14,7 +14,10 @@ Grand in ambition, simple in use:
 - 🌳 **Tree Directory Browser** — Centered on the Directory Information Tree (DIT), with all OUs, users, and groups visible at a glance
 - 👤 **CRUD on Any Node** — Not limited to users; any OU, Group, or Entry can be created, edited, or deleted
 - 🔐 **JWT Authentication** — LDAP bind for identity verification, JWT tokens for session security
-- 💾 **One-Click Backup** — LDIF export to ensure data is never lost
+- 💾 **One-Click Backup & Restore** — Export and import LDIFs seamlessly
+- 🌐 **Internationalization (i18n)** — Built-in dynamic English and Traditional Chinese UI support
+- 🔍 **Advanced Search Builder** — Visual query builder for complex LDAP filters (AND/OR assertions)
+- ⚡ **Bulk Operations** — Select multiple users or groups for concurrent processing
 
 ![LDAP-in-a-Box Dashboard](docs/frontend-dashboard.png)
 
@@ -61,7 +64,7 @@ For first login, use `admin` as the username and the `LDAP_ADMIN_PASSWORD` value
 │                          │        │                          │
 │   ldap-web (FastAPI)     │◄──────►│  ldap-master (OpenLDAP)  │
 │   + Vue.js static files  │  LDAP  │  osixia/openldap:1.5.0   │
-│   + JWT authentication   │  389   │  + Custom Schema (isVPN)  │
+│   + JWT authentication   │  389   │  + Custom Schema (isVPN, IsMailMonitor) │
 │                          │        │  + Initial LDIF seed data  │
 │   Port: 8000 (internal)  │        │  Port: 389 / 636         │
 └──────────────────────────┘        └──────────────────────────┘
@@ -102,6 +105,7 @@ For first login, use `admin` as the username and the `LDAP_ADMIN_PASSWORD` value
 | POST | `/api/v1/groups` | Create group |
 | POST | `/api/v1/groups/{cn}/members` | Add member |
 | POST | `/api/v1/backup` | Export LDIF backup |
+| POST | `/api/v1/backup/restore` | Import LDIF restore |
 
 ### v2 — Generic DIT API (Any Node Operations)
 
@@ -122,6 +126,7 @@ For first login, use `admin` as the username and the `LDAP_ADMIN_PASSWORD` value
 - **Synology DSM**: Control Panel → Domain/LDAP → Type: LDAP → Server: Docker host IP → Base DN: `dc=example,dc=com`
 - **FreeRADIUS**: Configure `mods-available/ldap` to point to `ldap://your-server:389`
 - **OpenVPN**: Use the `auth-ldap` plugin, filtering users by the `isVPN` attribute or VPN group membership
+- **Mail Servers**: Filter outgoing email permission checks via the custom `IsMailMonitor` attribute
 
 ---
 

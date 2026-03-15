@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="LDAP-in-a-Box", version="0.1.0")
+app = FastAPI(title="LDAP-in-a-Box", version="0.2.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -14,7 +14,7 @@ app.add_middleware(
 
 @app.get("/api/v1/health")
 def health_check():
-    return {"status": "ok", "version": "0.1.0"}
+    return {"status": "ok", "version": "0.2.0"}
 
 from app.routers import auth, users, groups, backup, tree, entry, schema
 
