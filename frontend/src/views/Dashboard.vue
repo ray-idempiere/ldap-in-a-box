@@ -202,11 +202,11 @@ async function releaseMail(queueId) {
   actionInFlight.value = queueId
   try {
     await api.post(`/mail/release/${queueId}`)
-    await loadHeldMail()
   } catch (e) {
     alert('Release failed: ' + (e.response?.data?.detail || e.message))
   } finally {
-    actionInFlight.value = null
+    await loadHeldMail()   // always refresh + reschedule timer
+    actionInFlight.value = null  // clear AFTER refresh so buttons stay disabled during refresh
   }
 }
 
@@ -215,11 +215,11 @@ async function dropMail(queueId) {
   actionInFlight.value = queueId
   try {
     await api.post(`/mail/drop/${queueId}`)
-    await loadHeldMail()
   } catch (e) {
     alert('Drop failed: ' + (e.response?.data?.detail || e.message))
   } finally {
-    actionInFlight.value = null
+    await loadHeldMail()   // always refresh + reschedule timer
+    actionInFlight.value = null  // clear AFTER refresh so buttons stay disabled during refresh
   }
 }
 
