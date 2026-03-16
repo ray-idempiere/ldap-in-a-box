@@ -65,7 +65,12 @@
     </div>
 
     <!-- Held Mail Queue Panel -->
-    <div class="mb-8">
+    <div v-if="!heldMailReady" class="mb-8">
+      <div class="bg-gray-900 border border-gray-700 rounded-xl p-5">
+        <span class="text-gray-500 text-sm">Loading mail queue...</span>
+      </div>
+    </div>
+    <div v-else class="mb-8">
       <!-- Messages present: red alert panel -->
       <div v-if="heldMail.length > 0"
            class="bg-red-950 border border-red-800 rounded-xl p-5">
@@ -179,6 +184,7 @@ const fileInput = ref(null)
 // Held mail queue
 const heldMail = ref([])
 const heldMailLoading = ref(false)
+const heldMailReady = ref(false)
 const actionInFlight = ref(null)   // queue_id currently being acted on, or null
 let heldMailTimer = null            // plain variable — timer handle does not need reactivity
 
@@ -193,6 +199,7 @@ async function loadHeldMail() {
     // keep previous heldMail state on error
   } finally {
     heldMailLoading.value = false
+    heldMailReady.value = true
     heldMailTimer = setTimeout(loadHeldMail, 30000)  // reschedule after completion
   }
 }
