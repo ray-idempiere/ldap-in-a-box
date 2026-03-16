@@ -12,13 +12,18 @@ FROM python:3.12-slim
 RUN apt-get update && apt-get install -y \
     build-essential gcc \
     libldap2-dev libsasl2-dev ldap-utils \
+    postfix postfix-ldap \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy Postfix configuration files
+COPY backend/postfix/main.cf /etc/postfix/main.cf
+
 COPY backend/app/ ./app/
+COPY backend/entrypoint.sh ./entrypoint.sh
 COPY --from=frontend-build /app/dist ./static/
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["./entrypoint.sh"]
