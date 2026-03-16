@@ -2,12 +2,13 @@ from fastapi import APIRouter, HTTPException, Depends
 import subprocess
 import logging
 from app.mail_monitor import get_held_queue_ids, parse_postcat_output
+from app.auth import require_admin
 
 router = APIRouter(prefix="/api/v1/mail", tags=["Mail Integration"])
 logger = logging.getLogger(__name__)
 
 @router.post("/release/{queue_id}")
-async def release_mail(queue_id: str):
+async def release_mail(queue_id: str, _=Depends(require_admin)):
     """
     Releases a held message from the Postfix queue (Runs postsuper -H)
     """
@@ -32,7 +33,7 @@ async def release_mail(queue_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/drop/{queue_id}")
-async def drop_mail(queue_id: str):
+async def drop_mail(queue_id: str, _=Depends(require_admin)):
     """
     Drops/Deletes a message from the Postfix queue (Runs postsuper -d)
     """
@@ -55,7 +56,7 @@ async def drop_mail(queue_id: str):
 
 
 @router.get("/queue")
-async def get_mail_queue():
+async def get_mail_queue(_=Depends(require_admin)):
     """
     Returns all messages currently held in the Postfix queue with parsed headers.
     Skips any message that cannot be parsed (postcat failure).

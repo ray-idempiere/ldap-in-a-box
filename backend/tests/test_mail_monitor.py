@@ -191,13 +191,13 @@ def _mock_postqueue_p(queue_ids):
     return mock
 
 
-def test_queue_endpoint_returns_messages(client):
+def test_queue_endpoint_returns_messages(admin_client):
     with patch("app.mail_monitor.subprocess.run") as mock_run:
         mock_run.side_effect = [
             _mock_postqueue_p(["Q001"]),
             _mock_run(POSTCAT_QUEUE_MSG),
         ]
-        resp = client.get("/api/v1/mail/queue")
+        resp = admin_client.get("/api/v1/mail/queue")
     assert resp.status_code == 200
     data = resp.json()
     assert data["count"] == 1
@@ -208,10 +208,10 @@ def test_queue_endpoint_returns_messages(client):
     assert data["messages"][0]["subject"] == "Q3 Report"
 
 
-def test_queue_endpoint_returns_empty_when_no_held_mail(client):
+def test_queue_endpoint_returns_empty_when_no_held_mail(admin_client):
     with patch("app.mail_monitor.subprocess.run") as mock_run:
         mock_run.return_value = _mock_postqueue_p([])
-        resp = client.get("/api/v1/mail/queue")
+        resp = admin_client.get("/api/v1/mail/queue")
     assert resp.status_code == 200
     data = resp.json()
     assert data["count"] == 0
@@ -219,7 +219,7 @@ def test_queue_endpoint_returns_empty_when_no_held_mail(client):
     assert data["messages"] == []
 
 
-def test_queue_endpoint_skips_messages_that_fail_to_parse(client):
+def test_queue_endpoint_skips_messages_that_fail_to_parse(admin_client):
     """parse_postcat_output returns None on error — those queue IDs must be silently skipped."""
     with patch("app.mail_monitor.subprocess.run") as mock_run:
         mock_run.side_effect = [
@@ -227,7 +227,7 @@ def test_queue_endpoint_skips_messages_that_fail_to_parse(client):
             _mock_run(POSTCAT_QUEUE_MSG),   # GOOD1 parses OK
             _mock_run("", returncode=1),    # BAD2 fails → None
         ]
-        resp = client.get("/api/v1/mail/queue")
+        resp = admin_client.get("/api/v1/mail/queue")
     assert resp.status_code == 200
     data = resp.json()
     assert data["count"] == 1
