@@ -1,7 +1,7 @@
 import email
 from email.policy import default
 from unittest.mock import patch, MagicMock
-from app.mail_monitor import parse_postcat_output
+from app.mail_monitor import parse_postcat_output, push_to_idempiere
 
 
 POSTCAT_PLAIN_ONLY = """
@@ -86,9 +86,6 @@ def test_parse_returns_none_when_no_message_contents_marker():
     assert result is None
 
 
-from app.mail_monitor import push_to_idempiere
-
-
 def _make_mail_info(queue_id="QUEUE001"):
     return {
         "queue_id": queue_id,
@@ -171,10 +168,6 @@ def test_push_strips_display_name_from_sender():
 
 
 # ── GET /mail/queue ──────────────────────────────────────────────────────────
-from fastapi.testclient import TestClient
-from app.main import app as fastapi_app
-
-_queue_client = TestClient(fastapi_app)
 
 POSTCAT_QUEUE_MSG = """
 *** MESSAGE CONTENTS Q001 ***
@@ -198,33 +191,35 @@ def _mock_postqueue_p(queue_ids):
     return mock
 
 
-def test_queue_endpoint_returns_messages():
+def test_queue_endpoint_returns_messages(client):
     with patch("app.mail_monitor.subprocess.run") as mock_run:
         mock_run.side_effect = [
             _mock_postqueue_p(["Q001"]),
             _mock_run(POSTCAT_QUEUE_MSG),
         ]
-        resp = _queue_client.get("/api/v1/mail/queue")
+        resp = client.get("/api/v1/mail/queue")
     assert resp.status_code == 200
     data = resp.json()
     assert data["count"] == 1
+    assert data["count"] == len(data["messages"])
     assert data["messages"][0]["queue_id"] == "Q001"
     assert data["messages"][0]["sender"] == "alice@company.com"
     assert data["messages"][0]["recipient"] == "partner@ext.com"
     assert data["messages"][0]["subject"] == "Q3 Report"
 
 
-def test_queue_endpoint_returns_empty_when_no_held_mail():
+def test_queue_endpoint_returns_empty_when_no_held_mail(client):
     with patch("app.mail_monitor.subprocess.run") as mock_run:
         mock_run.return_value = _mock_postqueue_p([])
-        resp = _queue_client.get("/api/v1/mail/queue")
+        resp = client.get("/api/v1/mail/queue")
     assert resp.status_code == 200
     data = resp.json()
     assert data["count"] == 0
+    assert data["count"] == len(data["messages"])
     assert data["messages"] == []
 
 
-def test_queue_endpoint_skips_messages_that_fail_to_parse():
+def test_queue_endpoint_skips_messages_that_fail_to_parse(client):
     """parse_postcat_output returns None on error — those queue IDs must be silently skipped."""
     with patch("app.mail_monitor.subprocess.run") as mock_run:
         mock_run.side_effect = [
@@ -232,8 +227,9 @@ def test_queue_endpoint_skips_messages_that_fail_to_parse():
             _mock_run(POSTCAT_QUEUE_MSG),   # GOOD1 parses OK
             _mock_run("", returncode=1),    # BAD2 fails → None
         ]
-        resp = _queue_client.get("/api/v1/mail/queue")
+        resp = client.get("/api/v1/mail/queue")
     assert resp.status_code == 200
     data = resp.json()
     assert data["count"] == 1
+    assert data["count"] == len(data["messages"])
     assert data["messages"][0]["queue_id"] == "GOOD1"
