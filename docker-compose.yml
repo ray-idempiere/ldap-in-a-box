@@ -27,8 +27,8 @@ services:
     expose:
       - "8000"
     environment:
-      LDAP_HOST: ldap-master
-      LDAP_PORT: 389
+      LDAP_HOST: "${LDAP_HOST:-ldap-master}"
+      LDAP_PORT: "${LDAP_PORT:-389}"
       LDAP_DOMAIN: "${LDAP_DOMAIN:-example.com}"
       LDAP_ADMIN_PASSWORD: "${LDAP_ADMIN_PASSWORD:-change_me}"
       LDAP_BIND_DN: "${LDAP_BIND_DN:-}"
