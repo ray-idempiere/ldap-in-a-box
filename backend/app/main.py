@@ -2,7 +2,34 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="LDAP-in-a-Box", version="0.2.0")
+from contextlib import asynccontextmanager
+from apscheduler.schedulers.background import BackgroundScheduler
+from app.mail_monitor import scan_and_forward_held_mails
+import logging
+import sys
+
+# Configure logging to output to stdout for docker
+logging.basicConfig(
+    stream=sys.stdout,
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger("ldap-in-a-box")
+
+scheduler = BackgroundScheduler()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Start the background scheduler
+    logger.info("Starting mail monitor scheduler...")
+    scheduler.add_job(scan_and_forward_held_mails, 'interval', seconds=30, max_instances=1)
+    scheduler.start()
+    yield
+    # Shutdown
+    logger.info("Shutting down scheduler...")
+    scheduler.shutdown()
+
+app = FastAPI(title="LDAP-in-a-Box", version="0.2.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -17,7 +44,7 @@ app.add_middleware(
 def health_check():
     return {"status": "ok", "version": "0.2.0"}
 
-from app.routers import auth, users, groups, backup, tree, entry, schema
+from app.routers import auth, users, groups, backup, tree, entry, schema, mail
 
 app.include_router(auth.router)
 app.include_router(users.router)
@@ -26,6 +53,7 @@ app.include_router(backup.router)
 app.include_router(tree.router)
 app.include_router(entry.router)
 app.include_router(schema.router)
+app.include_router(mail.router)
 
 import os
 from fastapi.staticfiles import StaticFiles
