@@ -16,7 +16,10 @@ class iDempiereSettings(BaseSettings):
     IDEMPIERE_WAREHOUSE_ID: str = "103"
     IDEMPIERE_USER: str = "admin"
     IDEMPIERE_PASS: str = "admin"
-    
+    IDEMPIERE_API_KEY: str = ""
+    IDEMPIERE_MAILINTERCEPT_PROCESS_SLUG: str = "hr_mailintercept-process"
+    IDEMPIERE_MAILINTERCEPT_TABLE_ID: int = 0  # Set to AD_Table_ID of HR_MailIntercept
+
     class Config:
         env_file = ".env"
         extra = "ignore"
@@ -142,19 +145,20 @@ def push_to_idempiere(mail_info: dict):
         "password": settings.IDEMPIERE_PASS
     }
 
+    base_headers = {"Content-Type": "application/json", "Accept": "application/json"}
+    if settings.IDEMPIERE_API_KEY:
+        base_headers["X-Api-Key"] = settings.IDEMPIERE_API_KEY
+
     try:
         with httpx.Client(timeout=10.0) as client:
-            login_resp = client.post(f"{settings.IDEMPIERE_URL}/api/v1/auth/tokens", json=auth_payload)
+            login_resp = client.post(f"{settings.IDEMPIERE_URL}/api/v1/auth/tokens",
+                                     json=auth_payload, headers=base_headers)
             if login_resp.status_code not in [200, 201]:
                 logger.error(f"iDempiere Login failed: {login_resp.text}")
                 return
             token = login_resp.json().get("token")
 
-            headers = {
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            }
+            headers = {**base_headers, "Authorization": f"Bearer {token}"}
 
             # Extract bare email address from "Display Name <email>" format
             sender_email = mail_info["sender"]
@@ -195,6 +199,20 @@ def push_to_idempiere(mail_info: dict):
 
             if create_resp.status_code in [200, 201]:
                 logger.info(f"Created HR_MailIntercept for Queue ID: {mail_info['queue_id']}")
+                # Trigger CompleteIt to start the Workflow approval process
+                record_id = create_resp.json().get("id")
+                if record_id and settings.IDEMPIERE_MAILINTERCEPT_TABLE_ID > 0:
+                    process_resp = client.post(
+                        f"{settings.IDEMPIERE_URL}/api/v1/processes/{settings.IDEMPIERE_MAILINTERCEPT_PROCESS_SLUG}",
+                        headers=headers,
+                        json={"record-id": record_id, "table-id": settings.IDEMPIERE_MAILINTERCEPT_TABLE_ID}
+                    )
+                    if process_resp.status_code in [200, 201]:
+                        logger.info(f"CompleteIt triggered for HR_MailIntercept ID={record_id}")
+                    else:
+                        logger.warning(f"CompleteIt failed for ID={record_id}: {process_resp.text}")
+                else:
+                    logger.warning("IDEMPIERE_MAILINTERCEPT_TABLE_ID not set — skipping CompleteIt")
             elif create_resp.status_code in [400, 409]:
                 logger.debug(f"HR_MailIntercept already exists for Queue ID: {mail_info['queue_id']} — skipping duplicate")
             else:
