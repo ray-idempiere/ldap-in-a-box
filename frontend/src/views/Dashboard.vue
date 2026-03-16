@@ -64,6 +64,77 @@
       </div>
     </div>
 
+    <!-- Held Mail Queue Panel -->
+    <div class="mb-8">
+      <!-- Messages present: red alert panel -->
+      <div v-if="heldMail.length > 0"
+           class="bg-red-950 border border-red-800 rounded-xl p-5">
+        <div class="flex justify-between items-center mb-4">
+          <div class="flex items-center gap-3">
+            <span class="text-red-400 font-semibold">⚠ Held Mail Queue</span>
+            <span class="bg-red-700 text-white text-xs font-bold px-2.5 py-0.5 rounded-full">
+              {{ heldMail.length }}
+            </span>
+          </div>
+          <button @click="loadHeldMail" :disabled="heldMailLoading"
+                  class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-400 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
+            <span :class="heldMailLoading ? 'animate-spin inline-block' : ''">↻</span> Refresh
+          </button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left text-gray-500 border-b border-red-900">
+                <th class="pb-2 font-medium">Sender</th>
+                <th class="pb-2 font-medium">Recipient</th>
+                <th class="pb-2 font-medium">Subject</th>
+                <th class="pb-2 font-medium w-24">Action</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-red-900/50">
+              <tr v-for="m in heldMail" :key="m.queue_id" class="hover:bg-red-900/20">
+                <td class="py-2 text-gray-300">{{ m.sender }}</td>
+                <td class="py-2 text-gray-300">{{ m.recipient }}</td>
+                <td class="py-2 text-gray-100">{{ m.subject }}</td>
+                <td class="py-2">
+                  <div class="flex gap-1.5">
+                    <button @click="releaseMail(m.queue_id)"
+                            :disabled="actionInFlight !== null"
+                            class="bg-green-900 hover:bg-green-800 text-green-300 text-xs px-2.5 py-1 rounded transition-colors disabled:opacity-40"
+                            title="Release — allow delivery">
+                      ✓
+                    </button>
+                    <button @click="dropMail(m.queue_id)"
+                            :disabled="actionInFlight !== null"
+                            class="bg-red-900 hover:bg-red-800 text-red-300 text-xs px-2.5 py-1 rounded transition-colors disabled:opacity-40"
+                            title="Drop — delete permanently">
+                      ✕
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Empty queue: green clear panel -->
+      <div v-else
+           class="bg-green-950 border border-green-800 rounded-xl p-5">
+        <div class="flex justify-between items-center">
+          <div class="flex items-center gap-3">
+            <span class="text-green-400 font-semibold">✓ Queue Clear</span>
+            <span class="bg-green-800 text-green-200 text-xs font-bold px-2.5 py-0.5 rounded-full">0</span>
+          </div>
+          <button @click="loadHeldMail" :disabled="heldMailLoading"
+                  class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-400 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
+            <span :class="heldMailLoading ? 'animate-spin inline-block' : ''">↻</span> Refresh
+          </button>
+        </div>
+        <p class="text-green-700 text-sm mt-2">No held messages — all outgoing mail is flowing normally.</p>
+      </div>
+    </div>
+
     <!-- Recent Users Table -->
     <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
       <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">👤 {{ $t('dashboard.recentUsers') }}</h2>
@@ -93,7 +164,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import api from '../api/client'
 import { apiV2 } from '../api/client'
 
@@ -104,6 +175,53 @@ const recentUsers = ref([])
 const exporting = ref(false)
 const importing = ref(false)
 const fileInput = ref(null)
+
+// Held mail queue
+const heldMail = ref([])
+const heldMailLoading = ref(false)
+const actionInFlight = ref(null)   // queue_id currently being acted on, or null
+let heldMailTimer = null            // plain variable — timer handle does not need reactivity
+
+async function loadHeldMail() {
+  clearTimeout(heldMailTimer)  // cancel pending timer before starting (prevents leak)
+  heldMailLoading.value = true
+  try {
+    const res = await api.get('/mail/queue')
+    heldMail.value = res.data.messages
+  } catch (e) {
+    console.warn('Failed to load held mail queue', e)
+    // keep previous heldMail state on error
+  } finally {
+    heldMailLoading.value = false
+    heldMailTimer = setTimeout(loadHeldMail, 30000)  // reschedule after completion
+  }
+}
+
+async function releaseMail(queueId) {
+  if (actionInFlight.value) return
+  actionInFlight.value = queueId
+  try {
+    await api.post(`/mail/release/${queueId}`)
+    await loadHeldMail()
+  } catch (e) {
+    alert('Release failed: ' + (e.response?.data?.detail || e.message))
+  } finally {
+    actionInFlight.value = null
+  }
+}
+
+async function dropMail(queueId) {
+  if (actionInFlight.value) return
+  actionInFlight.value = queueId
+  try {
+    await api.post(`/mail/drop/${queueId}`)
+    await loadHeldMail()
+  } catch (e) {
+    alert('Drop failed: ' + (e.response?.data?.detail || e.message))
+  } finally {
+    actionInFlight.value = null
+  }
+}
 
 onMounted(async () => {
   try {
@@ -137,7 +255,11 @@ onMounted(async () => {
   } catch (e) {
     console.error(e)
   }
+  // start held mail polling
+  loadHeldMail()
 })
+
+onUnmounted(() => clearTimeout(heldMailTimer))
 
 async function exportBackup() {
   exporting.value = true
