@@ -10,10 +10,11 @@ Employee mail client
 Postfix (ldap-web container)
     │ smtpd_recipient_restrictions
     │  ├─ @company.com → PERMIT (internal, no check)
-    │  └─ external    → LDAP lookup (IsMailMonitor=TRUE → HOLD)
+    │  └─ external    → LDAP lookup (IsMailMonitor=Y → HOLD)
     │
     ▼
 Hold queue  ◄──── FastAPI mail_monitor.py polls every 30s
+    │        ◄──── Dashboard.vue GET /api/v1/mail/queue (every 30s)
     │                   │
     │                   │ POST /api/v1/models/hr_mailintercept
     │                   ▼
@@ -21,6 +22,7 @@ Hold queue  ◄──── FastAPI mail_monitor.py polls every 30s
     │             HR_MailIntercept record (DocStatus=DR)
     │                   │
     │         HR Manager reviews and acts
+    │      (iDempiere window OR Dashboard panel)
     │                   │
     │         ┌─────────┴─────────┐
     │         │ Complete (approve) │ Void (reject)
@@ -51,8 +53,26 @@ Delivered to recipient
 | `IDEMPIERE_WAREHOUSE_ID` | `103` | iDempiere Warehouse ID |
 | `IDEMPIERE_USER` | `admin` | iDempiere API username |
 | `IDEMPIERE_PASS` | `admin` | iDempiere API password |
+| `IDEMPIERE_API_KEY` | *(empty)* | API key sent as `X-Api-Key` header. Required when iDempiere is behind an nginx reverse proxy that enforces key-based access. Leave empty if no proxy key is configured. |
+| `POSTFIX_RELAYHOST` | *(empty)* | Upstream relay host for outbound delivery. Format: `[smtp.upstream.com]:25`. If empty, Postfix delivers directly via MX. |
 
 All variables can be set via a `.env` file or Docker environment configuration.
+
+### nginx Reverse Proxy with API Key
+
+If iDempiere is fronted by nginx with `X-Api-Key` enforcement:
+
+```nginx
+location /api/ {
+    set $api_secret "your-secret-key-here";
+    if ($http_x_api_key != $api_secret) {
+        return 403;
+    }
+    proxy_pass http://127.0.0.1:8080/api/;
+}
+```
+
+Set `IDEMPIERE_API_KEY=your-secret-key-here` in `.env`. The monitor will include `X-Api-Key` on every request (login + record creation). If `IDEMPIERE_API_KEY` is empty, the header is omitted.
 
 ---
 
@@ -97,7 +117,7 @@ search_base = dc=company,dc=com
 bind = yes
 bind_dn = cn=admin,dc=company,dc=com
 bind_pw = ${LDAP_ADMIN_PASSWORD}
-query_filter = (&(objectClass=*)(mail=%s)(IsMailMonitor=TRUE))
+query_filter = (&(objectClass=*)(mail=%s)(IsMailMonitor=Y))
 result_attribute = mail
 result_format = HOLD
 ```
@@ -110,7 +130,13 @@ After writing this file, `postmap` compiles it to a `.db` binary that Postfix ca
 
 ### Outbound Delivery
 
-`relayhost` is empty in `main.cf` — Postfix attempts direct MX delivery. For environments where outbound port 25 is blocked, set `relayhost` via `postconf -e` in `entrypoint.sh` or pass it as an environment variable.
+By default `relayhost` is empty — Postfix attempts direct MX delivery. To forward all outbound mail to an upstream relay host, set `POSTFIX_RELAYHOST` in `.env`:
+
+```
+POSTFIX_RELAYHOST=[smtp.upstream.com]:25
+```
+
+`entrypoint.sh` applies this via `postconf -e "relayhost=..."` at startup. The brackets prevent Postfix from performing an MX lookup — it connects directly to the A record. Use this when outbound port 25 is blocked or when a secondary relay host is required for policy or compliance reasons.
 
 ---
 
@@ -157,7 +183,51 @@ A held message stays in the queue until released or dropped. The monitor will re
 
 ---
 
+## Dashboard Held Mail Queue
+
+### Frontend Polling
+
+`frontend/src/views/Dashboard.vue` polls `GET /api/v1/mail/queue` every 30 seconds using a `setTimeout`-rescheduling pattern (not `setInterval`) to prevent concurrent requests if the backend is slow.
+
+```
+loadHeldMail()
+  clearTimeout(heldMailTimer)
+  try: GET /api/v1/mail/queue → update heldMail[]
+  catch: console.warn, keep previous state
+  finally: heldMailTimer = setTimeout(loadHeldMail, 30000)
+```
+
+The panel renders immediately after mount. A `heldMailReady` flag gates the panel so the "Queue Clear" state is not shown until the first poll completes.
+
+### Action Handlers
+
+`releaseMail(queueId)` and `dropMail(queueId)` guard against double-clicks via `actionInFlight` ref. On any outcome (success or failure), `loadHeldMail()` is called unconditionally in the `finally` block to refresh the list and reschedule the timer.
+
+### Authentication
+
+All three mail API endpoints (`GET /queue`, `POST /release/{id}`, `POST /drop/{id}`) require admin authentication (`Authorization: Bearer <token>`). The Dashboard authenticates using the same session token as all other API calls.
+
+---
+
 ## FastAPI Mail Control Endpoints
+
+**`GET /api/v1/mail/queue`**
+Returns the current Postfix hold queue with parsed email headers. Reuses `get_held_queue_ids()` and `parse_postcat_output()` from `mail_monitor.py`. Messages that fail to parse (postcat error) are silently skipped.
+
+Response shape:
+```json
+{
+  "count": 2,
+  "messages": [
+    {
+      "queue_id": "ABC1234",
+      "sender": "employee@company.com",
+      "recipient": "partner@ext.com",
+      "subject": "Q3 Report"
+    }
+  ]
+}
+```
 
 **`POST /api/v1/mail/release/{queue_id}`**
 Runs `postsuper -H {queue_id}` (move to active queue) then `postqueue -f` (flush for immediate delivery).
@@ -165,7 +235,7 @@ Runs `postsuper -H {queue_id}` (move to active queue) then `postqueue -f` (flush
 **`POST /api/v1/mail/drop/{queue_id}`**
 Runs `postsuper -d {queue_id}` (permanently delete from queue).
 
-Both endpoints validate `queue_id` with `isalnum()` to prevent shell injection. They require no authentication — they must only be reachable within the Docker internal network. Do not expose port 8000 externally.
+All three endpoints validate `queue_id` with `isalnum()` to prevent shell injection and require admin authentication (`Authorization: Bearer <token>`). Do not expose port 8000 externally.
 
 ---
 
@@ -283,7 +353,7 @@ Look for `status=held` entries to confirm the HOLD restriction is firing.
 
 ### Mail is not being held
 
-1. Confirm `IsMailMonitor=TRUE` is set on the user's LDAP entry.
+1. Confirm `IsMailMonitor=Y` is set on the user's LDAP entry.
 2. Check Postfix logs for the `RCPT TO:` exchange:
    ```
    docker exec ldap-web tail -f /var/log/postfix.log
@@ -297,7 +367,7 @@ Look for `status=held` entries to confirm the HOLD restriction is firing.
    ```
    docker exec ldap-web ldapsearch -H ldap://ldap-master:389 \
      -D "cn=admin,dc=company,dc=com" -w <password> \
-     -b "dc=company,dc=com" "(&(mail=user@company.com)(IsMailMonitor=TRUE))"
+     -b "dc=company,dc=com" "(&(mail=user@company.com)(IsMailMonitor=Y))"
    ```
 
 ### HR_MailIntercept record not appearing in iDempiere
@@ -310,7 +380,7 @@ Look for `status=held` entries to confirm the HOLD restriction is firing.
    ```
    docker logs ldap-web | grep "ERROR"
    ```
-3. Verify `IDEMPIERE_URL` and credentials are correct.
+3. Verify `IDEMPIERE_URL`, credentials, and `IDEMPIERE_API_KEY` are correct.
 4. Confirm the `hr_mailintercept` table exists in the iDempiere database.
 
 ### Complete/Void action fails in iDempiere

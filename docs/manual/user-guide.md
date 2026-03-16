@@ -10,17 +10,57 @@ The email is not delivered until a manager takes action. If no action is taken, 
 
 ## Enabling Monitoring for an Employee
 
-To place an employee's outgoing email under interception, set the `IsMailMonitor` attribute to `TRUE` in their LDAP record.
+To place an employee's outgoing email under interception, set the **Mail Monitor** flag on their LDAP user record.
 
-In the LDAP-in-a-Box admin UI:
+### Option A — iDempiere LDAP Manager (recommended)
+
+1. In iDempiere, open **LDAP Manager**.
+2. Go to the **Users** tab and locate the employee (use the search bar or VPN/Mail Monitor filter checkboxes).
+3. Double-click the employee row to open **User Detail**.
+4. Check **Mail Monitor**.
+5. Click **Save**.
+
+The flag is written to LDAP (`IsMailMonitor=Y`) and synced back to `AD_User` in the same operation.
+
+### Option B — LDAP-in-a-Box Admin UI
 
 1. Navigate to the employee's user entry in the LDAP tree.
 2. Add or set the attribute `IsMailMonitor` to `TRUE`.
 3. Save the entry.
 
+---
+
 The change takes effect immediately — the next email the employee sends to an external address will be held.
 
-To stop monitoring, set `IsMailMonitor` to `FALSE` or remove the attribute.
+To stop monitoring, uncheck **Mail Monitor** in LDAP Manager (or set `IsMailMonitor` to `FALSE` in the LDAP tree) and save.
+
+---
+
+## Dashboard — Held Mail Queue Panel
+
+The Dashboard provides a live view of the Postfix hold queue without opening iDempiere. It refreshes automatically every 30 seconds.
+
+### Reading the Panel
+
+| State | Display |
+|-------|---------|
+| Messages held | Red panel — "⚠ Held Mail Queue" with a count badge and a table of messages |
+| Queue empty | Green panel — "✓ Queue Clear" |
+
+Each row in the table shows: **Sender**, **Recipient**, **Subject**, and action buttons.
+
+### Quick Actions from the Dashboard
+
+Two action buttons appear on each held message row:
+
+| Button | Symbol | Effect |
+|--------|--------|--------|
+| Release | ✓ (green) | Releases the email for immediate delivery |
+| Drop | ✕ (red) | Permanently deletes the email from the queue |
+
+Both buttons are disabled while another action is in progress. A **Refresh** button in the panel header triggers an immediate poll (the spinner appears while loading).
+
+> **Note:** The Dashboard actions bypass the iDempiere review workflow — use them for quick corrections (e.g., a false positive). For formal audit-trail approvals and rejections, use the HR Mail Intercept window in iDempiere.
 
 ---
 
