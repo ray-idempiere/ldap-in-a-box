@@ -137,10 +137,6 @@ def push_to_idempiere(mail_info: dict):
     from datetime import datetime, timezone
 
     auth_payload = {
-        "clientId": settings.IDEMPIERE_CLIENT_ID,
-        "roleId": settings.IDEMPIERE_ROLE_ID,
-        "organizationId": settings.IDEMPIERE_ORG_ID,
-        "warehouseId": settings.IDEMPIERE_WAREHOUSE_ID,
         "userName": settings.IDEMPIERE_USER,
         "password": settings.IDEMPIERE_PASS
     }
