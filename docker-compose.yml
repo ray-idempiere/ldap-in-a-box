@@ -33,6 +33,16 @@ services:
       LDAP_ADMIN_PASSWORD: "${LDAP_ADMIN_PASSWORD:-change_me}"
       JWT_SECRET: "${JWT_SECRET:-change_me_to_random_string}"
       TZ: "${TZ:-Asia/Taipei}"
+      POSTFIX_RELAYHOST: "${POSTFIX_RELAYHOST:-}"
+      IDEMPIERE_URL: "${IDEMPIERE_URL:-http://idempiere:8080}"
+      IDEMPIERE_CLIENT_ID: "${IDEMPIERE_CLIENT_ID:-11}"
+      IDEMPIERE_ROLE_ID: "${IDEMPIERE_ROLE_ID:-102}"
+      IDEMPIERE_ORG_ID: "${IDEMPIERE_ORG_ID:-11}"
+      IDEMPIERE_WAREHOUSE_ID: "${IDEMPIERE_WAREHOUSE_ID:-103}"
+      IDEMPIERE_USER: "${IDEMPIERE_USER:-admin}"
+      IDEMPIERE_PASS: "${IDEMPIERE_PASS:-admin}"
+      IDEMPIERE_API_KEY: "${IDEMPIERE_API_KEY:-}"
+      IDEMPIERE_MAILINTERCEPT_TABLE_ID: "${IDEMPIERE_MAILINTERCEPT_TABLE_ID:-0}"
     depends_on:
       ldap-master:
         condition: service_healthy
