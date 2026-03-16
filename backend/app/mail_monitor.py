@@ -136,23 +136,38 @@ def scan_and_forward_held_mails():
 def push_to_idempiere(mail_info: dict):
     from datetime import datetime, timezone
 
-    auth_payload = {
-        "userName": settings.IDEMPIERE_USER,
-        "password": settings.IDEMPIERE_PASS
-    }
-
     base_headers = {"Content-Type": "application/json", "Accept": "application/json"}
     if settings.IDEMPIERE_API_KEY:
         base_headers["X-Api-Key"] = settings.IDEMPIERE_API_KEY
 
     try:
         with httpx.Client(timeout=10.0) as client:
-            login_resp = client.post(f"{settings.IDEMPIERE_URL}/api/v1/auth/tokens",
-                                     json=auth_payload, headers=base_headers)
+            # Step 1: login with userName/password → temporary token
+            login_resp = client.post(
+                f"{settings.IDEMPIERE_URL}/api/v1/auth/tokens",
+                json={"userName": settings.IDEMPIERE_USER, "password": settings.IDEMPIERE_PASS},
+                headers=base_headers
+            )
             if login_resp.status_code not in [200, 201]:
                 logger.error(f"iDempiere Login failed: {login_resp.text}")
                 return
-            token = login_resp.json().get("token")
+            temp_token = login_resp.json().get("token")
+
+            # Step 2: select role/org/warehouse → session token
+            role_resp = client.put(
+                f"{settings.IDEMPIERE_URL}/api/v1/auth/tokens",
+                json={
+                    "clientId": int(settings.IDEMPIERE_CLIENT_ID),
+                    "roleId": int(settings.IDEMPIERE_ROLE_ID),
+                    "organizationId": int(settings.IDEMPIERE_ORG_ID),
+                    "warehouseId": int(settings.IDEMPIERE_WAREHOUSE_ID),
+                },
+                headers={**base_headers, "Authorization": f"Bearer {temp_token}"}
+            )
+            if role_resp.status_code not in [200, 201]:
+                logger.error(f"iDempiere role selection failed: {role_resp.text}")
+                return
+            token = role_resp.json().get("token")
 
             headers = {**base_headers, "Authorization": f"Bearer {token}"}
 
