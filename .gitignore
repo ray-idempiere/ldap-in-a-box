@@ -26,3 +26,6 @@ token.json
 
 # Postfix runtime-generated files (contain credentials)
 backend/postfix/ldap-sender.cf
+
+# Local-only docs
+docs/superpowers/
