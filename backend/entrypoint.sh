@@ -9,7 +9,7 @@ echo "$DOMAIN" > /etc/mailname
 LDAP_HOST="${LDAP_HOST:-ldap-master}"
 LDAP_PORT="${LDAP_PORT:-389}"
 LDAP_BASE_DN=$(echo "$DOMAIN" | sed 's/\./,dc=/g' | sed 's/^/dc=/')
-ADMIN_DN="cn=admin,$LDAP_BASE_DN"
+ADMIN_DN="${LDAP_BIND_DN:-cn=admin,$LDAP_BASE_DN}"
 ADMIN_PW="${LDAP_ADMIN_PASSWORD:-change_me}"
 
 cat > /etc/postfix/ldap-sender.cf <<EOF
@@ -18,7 +18,7 @@ search_base = ${LDAP_BASE_DN}
 bind = yes
 bind_dn = ${ADMIN_DN}
 bind_pw = ${ADMIN_PW}
-query_filter = (&(objectClass=*)(mail=%s)(IsMailMonitor=TRUE))
+query_filter = (&(objectClass=*)(mail=%s)(IsMailMonitor=Y))
 result_attribute = mail
 result_format = HOLD
 EOF
@@ -28,6 +28,12 @@ postconf -e "myhostname=$DOMAIN"
 postconf -e "mydomain=$DOMAIN"
 postconf -e "mydestination=localhost"
 postconf -e "maillog_file=/var/log/postfix.log"
+
+# Upstream relay host (optional)
+# Set POSTFIX_RELAYHOST in .env, e.g. POSTFIX_RELAYHOST=[smtp.upstream.com]:25
+if [ -n "${POSTFIX_RELAYHOST}" ]; then
+    postconf -e "relayhost=${POSTFIX_RELAYHOST}"
+fi
 
 # Generate recipient permit map — PERMIT internal recipients, external ones proceed to LDAP check
 echo "@${DOMAIN}   PERMIT" > /etc/postfix/recipient_permit.cf

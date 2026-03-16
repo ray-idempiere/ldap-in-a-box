@@ -31,6 +31,7 @@ services:
       LDAP_PORT: 389
       LDAP_DOMAIN: "${LDAP_DOMAIN:-example.com}"
       LDAP_ADMIN_PASSWORD: "${LDAP_ADMIN_PASSWORD:-change_me}"
+      LDAP_BIND_DN: "${LDAP_BIND_DN:-}"
       JWT_SECRET: "${JWT_SECRET:-change_me_to_random_string}"
       TZ: "${TZ:-Asia/Taipei}"
       POSTFIX_RELAYHOST: "${POSTFIX_RELAYHOST:-}"
