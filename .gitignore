@@ -23,3 +23,6 @@ docker-compose.override.yml
 
 # Auth tokens
 token.json
+
+# Postfix runtime-generated files (contain credentials)
+backend/postfix/ldap-sender.cf
