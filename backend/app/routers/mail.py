@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 import subprocess
 import logging
+from app.mail_monitor import get_held_queue_ids, parse_postcat_output
 
 router = APIRouter(prefix="/api/v1/mail", tags=["Mail Integration"])
 logger = logging.getLogger(__name__)
@@ -51,3 +52,24 @@ async def drop_mail(queue_id: str):
     except Exception as e:
         logger.error(f"Error dropping mail {queue_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/queue")
+async def get_mail_queue():
+    """
+    Returns all messages currently held in the Postfix queue with parsed headers.
+    Skips any message that cannot be parsed (postcat failure).
+    """
+    queue_ids = get_held_queue_ids()
+    messages = []
+    for qid in queue_ids:
+        info = parse_postcat_output(qid)
+        if info is None:
+            continue
+        messages.append({
+            "queue_id": qid,
+            "sender": info.get("sender", ""),
+            "recipient": info.get("recipient", ""),
+            "subject": info.get("subject", ""),
+        })
+    return {"count": len(messages), "messages": messages}
