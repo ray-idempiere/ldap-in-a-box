@@ -84,3 +84,87 @@ def test_parse_returns_none_when_no_message_contents_marker():
     with patch("app.mail_monitor.subprocess.run", return_value=_mock_run(POSTCAT_NO_CONTENTS)):
         result = parse_postcat_output("ABC789")
     assert result is None
+
+
+from app.mail_monitor import push_to_idempiere
+
+
+def _make_mail_info(queue_id="QUEUE001"):
+    return {
+        "queue_id": queue_id,
+        "sender": "Sender Name <sender@example.com>",
+        "subject": "Test Subject",
+        "recipient": "recipient@external.com",
+        "body_text": "Plain body",
+        "body_html": "<html>HTML body</html>",
+    }
+
+
+def _mock_client(create_status=201):
+    client = MagicMock()
+    # Login response
+    login_resp = MagicMock()
+    login_resp.status_code = 200
+    login_resp.json.return_value = {"token": "test-token"}
+    # User lookup response
+    user_resp = MagicMock()
+    user_resp.status_code = 200
+    user_resp.json.return_value = {"records": [{"AD_User_ID": 42}]}
+    # Create record response
+    create_resp = MagicMock()
+    create_resp.status_code = create_status
+    create_resp.text = ""
+    client.__enter__ = MagicMock(return_value=client)
+    client.__exit__ = MagicMock(return_value=False)
+    client.post.side_effect = [login_resp, create_resp]
+    client.get.return_value = user_resp
+    return client
+
+
+def test_push_calls_hr_mailintercept_endpoint():
+    client = _mock_client()
+    with patch("app.mail_monitor.httpx.Client", return_value=client):
+        push_to_idempiere(_make_mail_info())
+    # The second POST call should be to hr_mailintercept
+    create_call = client.post.call_args_list[1]
+    assert "hr_mailintercept" in create_call[0][0]
+
+
+def test_push_payload_contains_required_fields():
+    client = _mock_client()
+    with patch("app.mail_monitor.httpx.Client", return_value=client):
+        push_to_idempiere(_make_mail_info())
+    payload = client.post.call_args_list[1][1]["json"]
+    assert payload["SenderEmail"] == "sender@example.com"
+    assert payload["Subject"] == "Test Subject"
+    assert payload["Recipients"] == "recipient@external.com"
+    assert payload["PostfixQueueID"] == "QUEUE001"
+    assert payload["BodyText"] == "Plain body"
+    assert payload["BodyHtml"] == "<html>HTML body</html>"
+    assert payload["DocStatus"] == "DR"
+    assert payload["DocAction"] == "--"
+    assert "InterceptedDate" in payload
+    assert payload["AD_User_ID"] == 42
+
+
+def test_push_handles_duplicate_gracefully():
+    """409 or 400 from iDempiere (duplicate PostfixQueueID) should log and not raise."""
+    client = _mock_client(create_status=409)
+    with patch("app.mail_monitor.httpx.Client", return_value=client):
+        # Should not raise
+        push_to_idempiere(_make_mail_info())
+
+
+def test_push_handles_400_as_duplicate():
+    client = _mock_client(create_status=400)
+    with patch("app.mail_monitor.httpx.Client", return_value=client):
+        push_to_idempiere(_make_mail_info())
+
+
+def test_push_strips_display_name_from_sender():
+    """'Display Name <email@example.com>' -> 'email@example.com' for LDAP lookup and SenderEmail."""
+    client = _mock_client()
+    with patch("app.mail_monitor.httpx.Client", return_value=client):
+        push_to_idempiere(_make_mail_info())
+    payload = client.post.call_args_list[1][1]["json"]
+    assert payload["SenderEmail"] == "sender@example.com"

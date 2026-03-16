@@ -131,7 +131,8 @@ def scan_and_forward_held_mails():
         push_to_idempiere(mail_info)
 
 def push_to_idempiere(mail_info: dict):
-    # 1. Login to get token
+    from datetime import datetime, timezone
+
     auth_payload = {
         "clientId": settings.IDEMPIERE_CLIENT_ID,
         "roleId": settings.IDEMPIERE_ROLE_ID,
@@ -140,7 +141,7 @@ def push_to_idempiere(mail_info: dict):
         "userName": settings.IDEMPIERE_USER,
         "password": settings.IDEMPIERE_PASS
     }
-    
+
     try:
         with httpx.Client(timeout=10.0) as client:
             login_resp = client.post(f"{settings.IDEMPIERE_URL}/api/v1/auth/tokens", json=auth_payload)
@@ -148,49 +149,56 @@ def push_to_idempiere(mail_info: dict):
                 logger.error(f"iDempiere Login failed: {login_resp.text}")
                 return
             token = login_resp.json().get("token")
-            
+
             headers = {
                 "Authorization": f"Bearer {token}",
                 "Content-Type": "application/json",
                 "Accept": "application/json"
             }
-            
-            # 2. Get User ID by Email (Extract email address from From: Header, e.g. "User <user@test.com>" -> user@test.com)
+
+            # Extract bare email address from "Display Name <email>" format
             sender_email = mail_info["sender"]
             if "<" in sender_email and ">" in sender_email:
                 sender_email = sender_email.split("<")[1].split(">")[0]
-                
-            user_query_resp = client.get(
+
+            # Look up AD_User_ID by sender email
+            user_resp = client.get(
                 f"{settings.IDEMPIERE_URL}/api/v1/models/ad_user?filter=email eq '{sender_email}'",
                 headers=headers
             )
-            
             ad_user_id = None
-            if user_query_resp.status_code == 200:
-                users = user_query_resp.json().get("records", [])
+            if user_resp.status_code == 200:
+                users = user_resp.json().get("records", [])
                 if users:
                     ad_user_id = users[0].get("AD_User_ID")
-            
-            # 3. Create MX_RBL Document
+
+            # Create HR_MailIntercept document (Draft, no pending action)
             create_payload = {
-                "Sender": sender_email,
-                "Description": mail_info["subject"],
-                "Host": mail_info["queue_id"],
-                "Processing": "Y",
+                "SenderEmail": sender_email,
+                "Recipients": mail_info["recipient"],
+                "Subject": mail_info["subject"],
+                "PostfixQueueID": mail_info["queue_id"],
+                "InterceptedDate": datetime.now(timezone.utc).isoformat(),
+                "BodyText": mail_info.get("body_text", ""),
+                "BodyHtml": mail_info.get("body_html", ""),
+                "DocStatus": "DR",
+                "DocAction": "--",
             }
             if ad_user_id:
                 create_payload["AD_User_ID"] = ad_user_id
-                
+
             create_resp = client.post(
-                f"{settings.IDEMPIERE_URL}/api/v1/models/mx_rbl",
+                f"{settings.IDEMPIERE_URL}/api/v1/models/hr_mailintercept",
                 headers=headers,
                 json=create_payload
             )
-            
+
             if create_resp.status_code in [200, 201]:
-                logger.info(f"Successfully created RBL in iDempiere for Queue ID: {mail_info['queue_id']}")
+                logger.info(f"Created HR_MailIntercept for Queue ID: {mail_info['queue_id']}")
+            elif create_resp.status_code in [400, 409]:
+                logger.debug(f"HR_MailIntercept already exists for Queue ID: {mail_info['queue_id']} — skipping duplicate")
             else:
-                logger.error(f"Failed to create RBL: {create_resp.text}")
-                
+                logger.error(f"Failed to create HR_MailIntercept: {create_resp.text}")
+
     except Exception as e:
         logger.error(f"Error communicating with iDempiere: {e}")
