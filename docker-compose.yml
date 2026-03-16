@@ -26,6 +26,8 @@ services:
     container_name: ldap-web
     expose:
       - "8000"
+    ports:
+      - "${SMTP_PORT:-25}:25"
     environment:
       LDAP_HOST: "${LDAP_HOST:-ldap-master}"
       LDAP_PORT: "${LDAP_PORT:-389}"
