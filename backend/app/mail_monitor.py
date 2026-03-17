@@ -168,8 +168,16 @@ def push_to_idempiere(mail_info: dict):
                 logger.error(f"iDempiere role selection failed: {role_resp.text}")
                 return
             token = role_resp.json().get("token")
-
             headers = {**base_headers, "Authorization": f"Bearer {token}"}
+
+            # Check if HR_MailIntercept already exists for this queue ID
+            check_resp = client.get(
+                f"{settings.IDEMPIERE_URL}/api/v1/models/hr_mailintercept?$filter=PostfixQueueID eq '{mail_info['queue_id']}'",
+                headers=headers
+            )
+            if check_resp.status_code == 200 and check_resp.json().get("row-count", 0) > 0:
+                logger.debug(f"HR_MailIntercept already exists for Queue ID: {mail_info['queue_id']} — skipping")
+                return
 
             # Extract bare email address from "Display Name <email>" format
             sender_email = mail_info["sender"]
@@ -178,14 +186,14 @@ def push_to_idempiere(mail_info: dict):
 
             # Look up AD_User_ID by sender email
             user_resp = client.get(
-                f"{settings.IDEMPIERE_URL}/api/v1/models/ad_user?filter=email eq '{sender_email}'",
+                f"{settings.IDEMPIERE_URL}/api/v1/models/ad_user?$filter=EMail eq '{sender_email}'",
                 headers=headers
             )
             ad_user_id = None
             if user_resp.status_code == 200:
                 users = user_resp.json().get("records", [])
                 if users:
-                    ad_user_id = users[0].get("AD_User_ID")
+                    ad_user_id = users[0].get("id")
 
             # Create HR_MailIntercept document (Draft, no pending action)
             create_payload = {
@@ -193,11 +201,9 @@ def push_to_idempiere(mail_info: dict):
                 "Recipients": mail_info["recipient"],
                 "Subject": mail_info["subject"],
                 "PostfixQueueID": mail_info["queue_id"],
-                "InterceptedDate": datetime.now(timezone.utc).isoformat(),
+                "InterceptedDate": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "BodyText": mail_info.get("body_text", ""),
                 "BodyHtml": mail_info.get("body_html", ""),
-                "DocStatus": "DR",
-                "DocAction": "--",
             }
             if ad_user_id:
                 create_payload["AD_User_ID"] = ad_user_id
@@ -224,8 +230,10 @@ def push_to_idempiere(mail_info: dict):
                         logger.warning(f"CompleteIt failed for ID={record_id}: {process_resp.text}")
                 else:
                     logger.warning("IDEMPIERE_MAILINTERCEPT_TABLE_ID not set — skipping CompleteIt")
-            elif create_resp.status_code in [400, 409]:
+            elif create_resp.status_code == 409:
                 logger.debug(f"HR_MailIntercept already exists for Queue ID: {mail_info['queue_id']} — skipping duplicate")
+            elif create_resp.status_code == 400:
+                logger.error(f"Failed to create HR_MailIntercept (400): {create_resp.text}")
             else:
                 logger.error(f"Failed to create HR_MailIntercept: {create_resp.text}")
 
